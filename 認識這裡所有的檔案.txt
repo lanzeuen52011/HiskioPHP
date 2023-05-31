@@ -1,0 +1,32 @@
+1.MVC概念(Model、View、Controller)
+    Model，又稱資料模型
+
+2.Laravel專案中的資料
+    2-1.app
+        A.app/Console:指令相關的檔案
+        B.app/Excepting:出錯相關的檔案
+        C.app/Http:超級重要的檔案，可以在app/http/Controller設定使用者第一個進入我們程式的地方
+        D.app/Model:可以存放需要的模塊
+        D.app/Providers:邏輯包成服務的使用方式或者設定套件的使用方式
+    2-2.bootstrap (較少碰到)
+    2-3.config:設定參數，如連到哪個資料庫或者連到哪個email
+    2-4.database:資料庫的所有操作，包刮練習用的假資料或者伺服器預設產生的資料等
+    2-5.public:放置靜態檔案，例如圖片、pdf等等供他人看的檔案。
+    2-6.resources
+        A.resources/view:可以去放各種給客戶端看的前端檔案
+        B.resources/css:放CSS
+        C.resources/js:放JS
+    2-7.routes:網站地圖的路由，透過路由來決定要去執行哪段程式
+        A.routes/web.php:新手的設定路由
+        B.routes/api.php:進階設定
+    2-8.storage:使用者要上傳的檔案或者產生出來的暫時的資料
+    2-9.test:可以寫測試檔案，可提升程式品質，並提升觀念
+    2-10.vendor:放置Laravel專案使用的套件
+    2-11.沒放資料夾的檔案:通常都為系統設定檔案
+
+
+
+設定路由-> 2-7.routes A.routes/web.php
+    
+        
+        
