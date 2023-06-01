@@ -12,6 +12,7 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        //
+        //拿來檢測前端回傳的密碼是否合法
+        '*' //對於資料回傳一律不檢查
     ];
 }

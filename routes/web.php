@@ -18,7 +18,7 @@ Route::get('/', function () {
 });
 // 以上方為例，設定當使用者要get'/'時，就執行函數來回傳resources/views/welcome.blade.php
 // 以下方為例，設定當使用者要post'/'時，就進到名為'ProductController'的Controller，並使用create函數
-Route::post('/','ProductController@create');
+// Route::post('/','ProductController@create');
 
 Route::resource('product','ProductController');
 // 此為針對product去產生各種網址，並且對應到ProductController。
@@ -92,6 +92,8 @@ Route::resource('product','ProductController');
 //     Route::get('/index','HomeController@index');
 //     Route::post('/print','HomeController@print');
 // });
+
+
 
 
 
