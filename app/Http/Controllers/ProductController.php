@@ -4,6 +4,7 @@ namespace App\Http\Controllers; //重要，如果在其他模塊需要用到此�
 
 use App\Http\Controllers\Controller; // 使用地址中的檔案
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -36,8 +37,48 @@ class ProductController extends Controller
         // return redirect('/'); //導頁，就是自動換頁，此處就是輸入http://127.0.0.1:8000/product 會直接被打回 http://127.0.0.1:8000/
         
     // 3-2.Read讀取資料    
-        $data=$this->getData(); // 從此處來得到getData
-        dump($data);
+        // $data=$this->getData(); // 從此處來得到getData
+        // $data = DB::table('sbl_teams')->get();
+        // dump($data);
+        // return response($data); // 並回傳到網頁上
+
+    // 3-5.購物車開發
+        // $data = DB::table('products')->get();
+        // return response($data); // 並回傳到網頁上
+    // 9-1.新增篩選條件
+        // $data = DB::table('sbl_team_data')->select('win');
+        // $data = $data->addSelect('season')->get(); // 新增篩選條件，並GET
+        // return response($data); // 並回傳到網頁上
+    // 9-2.whereRaw將()內的字串變成SQL的where語法
+        // $data = DB::table('sbl_team_data')->whereRaw('win > lost')->get(); // 將()內的字串變成SQL的where語法
+        // return response($data); // 並回傳到網頁上
+    // 9-3.加入其他表格的資料1
+        // $data = DB::table('sbl_team_data')
+        //             ->join('sbl_teams','sbl_teams.id','=','sbl_team_data.team_id')
+        //             // ->leftJoin('sbl_teams','sbl_teams.id','=','sbl_team_data.team_id')
+        //             // ->rightJoin('sbl_teams','sbl_teams.id','=','sbl_team_data.team_id')
+        //             ->select('*')
+        //             ->get(); // 將()內的字串變成SQL的where語法
+        // return response($data); // 並回傳到網頁上
+    // 9-4.加入其他表格的資料2
+        // $data = DB::table('sbl_team_data')
+        //             ->join('sbl_teams',function($join){
+        //                 $join->on('sbl_teams.id','=','sbl_team_data.team_id')
+        //                     ->where('sbl_teams.total_win','>','200');
+        //             })
+        //             ->select('*')
+        //             ->get();
+        // return response($data); // 並回傳到網頁上
+    // 9-5.加入資料時回傳當筆資料的ID
+        // $data = DB::table('owner')->insertGetId(['team_id'=>2]); // 新增資料後，能夠馬上得到此筆資料的ID
+        // return response($data); // 並回傳到網頁上
+    // 9-6.enableQueryLog會記錄跑了甚麼程式碼
+        DB::enableQueryLog(); // 會記錄跑了甚麼程式碼
+        $data = DB::table('owner')->insertGetId(['team_id'=>2]); // 新增資料後，能夠馬上得到此筆資料的ID
+        // $data = DB::table('owner')->where('team_id',2)->dump(); // 可以看到SQL的程式碼
+        // $data = DB::table('sbl_team_data')->where('id',532)->increment('win',2000); // 指定win欄位的值增加20000
+        // $data = DB::table('sbl_team_data')->where('id',532)->decrement('win',2000); // 指定win欄位的值減少20000
+        dd(DB::getQueryLog()); //跑到這裡中斷
         return response($data); // 並回傳到網頁上
     }
 

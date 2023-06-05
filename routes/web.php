@@ -23,6 +23,9 @@ Route::get('/', function () {
 Route::resource('product','ProductController');
 // 此為針對product去產生各種網址，並且對應到ProductController。
 
+Route::resource('carts','CartController');
+Route::resource('cart_items','CartItemController');
+
 // 基本觀念
     // CRUD：Create、Read、Update、Delete
     // Controller:是核心的邏輯集中地，為各種Controller的被繼承物件
@@ -43,7 +46,7 @@ Route::resource('product','ProductController');
 
 
 // 基本程式碼
-    // 1.根目錄路由
+    // 1.根目錄路由(常用)
     //      解析：設定當使用者要get'/'時，就執行函數來回傳resources/views/welcome.blade.php
     //      程式碼範例：
     //              Route::get('/', function () {
@@ -55,7 +58,7 @@ Route::resource('product','ProductController');
     //      程式碼範例：
     //              Route::post('/','ProductController@create');
 
-    // 3.針對某詞產生各種網址
+    // 3.針對某詞產生各種網址(常用)
     //      解析：此為針對product去產生各種網址，並且對應到ProductController。
     //      程式碼範例：
     //              Route::resource('product','ProductController');
