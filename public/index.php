@@ -44,12 +44,15 @@ require __DIR__.'/../vendor/autoload.php';
 |
 */
 
-$app = require_once __DIR__.'/../bootstrap/app.php';
+$app = require_once __DIR__.'/../bootstrap/app.php'; 
+// Laravel本身的應用程式，內含有Laravel本身啟動的組件，bootstrap中也有
 
-$kernel = $app->make(Kernel::class);
+$kernel = $app->make(Kernel::class); 
+//讓程式啟動並跑Http相關的功能，Kernel是設定各種屬性值(例：middleware、TrustProxies、HandleCORS等)，Kernel內延伸的HttpKernel才是Kernel的精華，會有各種屬性跟函式。
+// app/Http/Kernel是app/console/Kernel內的consoleKernel
 
 $response = $kernel->handle(
-    $request = Request::capture()
+    $request = Request::capture() //捕獲Http Request 
 )->send();
 
 $kernel->terminate($request, $response);

@@ -26,6 +26,9 @@ Route::resource('product','ProductController');
 Route::resource('carts','CartController');
 Route::resource('cart_items','CartItemController');
 
+Route::group(['middleware'=>'check.dirty'],function(){
+    Route::resource('product','ProductController');
+});
 // 基本觀念
     // CRUD：Create、Read、Update、Delete
     // Controller:是核心的邏輯集中地，為各種Controller的被繼承物件

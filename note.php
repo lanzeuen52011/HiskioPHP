@@ -714,13 +714,107 @@
                 DB::enableQueryLog(); // 會記錄跑了甚麼程式碼
                 $data = DB::table('owner')->insertGetId(['team_id'=>2]); // 新增資料後，能夠馬上得到此筆資料的ID
                 // $data = DB::table('owner')->where('team_id',2)->dump(); // 可以看到SQL的程式碼
-                // $data = DB::table('sbl_team_data')->where('id',532)->increment('win',2000); // 指定win欄位的值增加20000
-                // $data = DB::table('sbl_team_data')->where('id',532)->decrement('win',2000); // 指定win欄位的值減少20000
+                // $data = DB::table('sbl_team_data')->where('id',532)->increment('win',2000); // 指定win欄位的值增加2000
+                // $data = DB::table('sbl_team_data')->where('id',532)->decrement('win',2000); // 指定win欄位的值減少2000
                 dd(DB::getQueryLog()); //跑到這裡中斷
                 return response($data); // 並回傳到網頁上
             }
         // 2.Postman測試GET
             // 位置：http://127.0.0.1:8000/product
+
+// 10.Laravel補充說明
+    // 10-1.Request生命週期
+        // public/index.php
+        $app = require_once __DIR__.'/../bootstrap/app.php'; 
+        // Laravel本身的應用程式，內含有Laravel本身啟動的組件，bootstrap中也有
+
+        $kernel = $app->make(Kernel::class); 
+        //讓程式啟動並跑Http相關的功能，Kernel是設定各種屬性值(例：middleware、TrustProxies、HandleCORS等)，Kernel內延伸的HttpKernel才是Kernel的精華，會有各種屬性跟函式。
+        // app/Http/Kernel是app/console/Kernel內的consoleKernel
+
+        $response = $kernel->handle(
+            $request = Request::capture() //捕獲Http Request 
+        )->send();
+
+        $kernel->terminate($request, $response);
+
+
+    // 10-2.所有 Request 的集中站 - Middleware 介紹
+        // 從app/Http/Kernel.php@$middlewareAliases，可以找到Middleware的使用方法，Middleware就是寫在以下的'middleware' => ['checkValidIp'],這行
+            Route::group([
+                // middleware-檢查，是指所有程式碼與API的中間人，以此處為例：要進到index或者print之前，要先在middleware檢查IP是否合格
+                'middleware' => ['checkValidIp'],
+                // prefix-前綴，是指當有人要進入/index或者print時，會變成/web/index或者/web/print
+                // 例如說有些路由是給Adim用的或者VIP用的，可以在這裡設定檢查身分
+                'prefix'=>'web',
+                // namespace-檔案地址,此處的'Web'對應到的是app/Http/Controller/Web
+                'namespace'=>'Web',
+            ],function(){
+                // 放在一起的路由，此處的兩個路由(Routes)要去用使用Route::group的陣列屬性
+                // 這裡告訴程式說我要到HomeController@index
+                Route::get('/index','HomeController@index');
+                Route::post('/print','HomeController@print');
+            });
+
+    // 10-3.如何製作 Middleware
+        // I.終端輸入php artisan make:middleware CheckDirtyWord
+        // II.app/Http/Middleware 設定如何驗證
+            // 程式碼
+            public function handle(Request $request, Closure $next): Response
+            {
+                $dirtyWords  = [ //可能的髒字(?)
+                    'apple',
+                    'orange'
+                ];
+                $parameters  = $request->all(); // 前端傳來的資料
+                foreach($parameters as $key => $value){
+                    if($key == 'content'){
+                        // 每個是content的內容就判斷
+                        foreach($dirtyWords as $dirtyWord){
+                            // 一個一個字判斷
+                            if(strpos($value,$dirtyWord) !== false){ //切記不可用!=，必須得用!==，因若是返回值為Index 0，會被判斷成false，因此必須為!==。
+                            //使用strpos來判斷$value有沒有包含$dirtyWords，回傳包含$dirtyWords的第幾個引數開始，沒有則反為false
+                                return response('dirty',400);
+                            }
+                        }
+                    }
+                }
+                return $next($request);
+            }
+
+        // III. app/Http/Kernel.php 新增驗證方式
+            // 程式碼
+                protected $middlewareAliases = [
+                    'auth' => \App\Http\Middleware\Authenticate::class,
+                    'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
+                    'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
+                    'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
+                    'can' => \Illuminate\Auth\Middleware\Authorize::class,
+                    'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+                    'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
+                    'signed' => \App\Http\Middleware\ValidateSignature::class,
+                    'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+                    'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+                    'check.dirty' => \App\Http\Middleware\CheckDirtyWord::class, //新增此行
+                ];
+
+        // IV.web.php 設定中繼站與路由
+            // 程式碼
+                Route::group(['middleware'=>'check.dirty'],function(){
+                    Route::resource('product','ProductController');
+                });
+        // V.Postman測試POST
+            // 位置：http://127.0.0.1:8000/product
+            // Body:title:cool,content:apple
+            // 回傳'dirty'或者設定好的其他回答，則是成功，若content並非設定好的dirtywords，則會回傳該回傳的資料。
+
+
+            
+
+
+
+
+
 
 
 
