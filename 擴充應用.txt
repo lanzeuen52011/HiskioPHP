@@ -1,5 +1,5 @@
-PHP Intelephense(Formater)
-    類似Prettier的存在
+PHP Intelephense
+    可以使use等等的位置產生連結，按下Ctrl+左鍵，連結到引用檔案的位置。
 
 Chorme擴充應用 - JSON Viewer
     https://chrome.google.com/webstore/detail/json-viewer/gbmdgpbipfallnflgajpaliibnhdgobh?hl=zh-TW

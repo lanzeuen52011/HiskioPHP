@@ -376,6 +376,591 @@
                 }
             // 26.Postman測試DELETE
                 // 位置：http://127.0.0.1:8000/cart_items/1
+
+    // 3-6.會員註冊 - Auth 套件與相關概念
+        // A.會員註冊
+        // 此處會使用到Laravel官方套件Passport，驗證授權的套件
+        // Passport官方文件：https://laravel.com/docs/10.x/passport
+            // 1.終端輸入"composer require laravel/passport"安裝passport，
+                // 如遇到"Installation failed, reverting ./composer.json and ./composer.lock to their original content."，
+                // 刪除composer.json與composer.lock，然後重新輸入指令即可。
+            // 2.終端輸入"php artisan migrate"，因為安裝完以上後他會偷偷的裝上一些table(資料表)
+                // 如果遇到PHP Fatal error:  Uncaught Error: Class "Illuminate\Foundation\Application" not found in C:\Users\lanze\Desktop\php-trainning\Hiskio\blog\bootstrap\app.php:14
+                    // i.請將composer.json恢復到最一開始專案成立時的樣子
+                    // ii.刪除vendor資料夾
+                    // iii.再終端輸入"composer clear-cache"，將快取清除
+                    // iv.在composer.json中，將 "laravel/passport": "^11.8" 添加到 "require" 部分
+                    // v.終端輸入"composer instal"
+                    // vi.終端輸入"php artisan migrate"，即可。
+            // 3.終端輸入"php artisan passport:install"，產生必要的Class，與加密密碼(用於API的通行證，也就是所謂的API Key)
+            // 4.到(app/Model/User.php)加上API Key的模組
+                use Laravel\Passport\HasApiTokens; //trait類型為工具箱類型，可使用多種功能
+            // 5.到(config/auth.php)，使用API的方式登入，所以改成passport
+                'guards' => [
+                    'web' => [
+                        'driver' => 'session',
+                        'provider' => 'users',
+                    ],
+                
+                    'api' => [
+                        'driver' => 'passport', // 使用API的方式登入，所以改成passport
+                        'provider' => 'users',
+                    ],
+                ],
+            // 6.終端輸入"php artisan make:controller AuthController"
+            // 7.到(app/Http/Controller)
+                public function signup(Request $request){
+                    // 這裡是拿來建立帳號密碼的，前端傳資料過來，建立會員的帳號密碼
+                    $form = $request->all();
+                }
+            // 8.終端輸入"php artisan make:request CreateUser"
+            // 9.到(app/Http/Request/CreateUser.php)註冊帳號時的檢驗
+                class CreateUser extends APIRequest{// 使用APIRequest來檢查
+                        public function authorize(): bool
+                    {
+                        return true; //先改成true，讓它通過即可，因現在還用不到此功能
+                    }
+                    public function rules(): array
+                    {
+                        return [
+                            'name'=>'required|string',
+                            'email'=>'required|string|email|uniqle:users', 
+                            //uniqle:users，使用者單一性，此處指每個在users資料表中的使用者的email必須具備唯一性，僅限單對單
+                            'password'=>'required|string|confirmed', 
+                            // confirmed，此處會使得使用者做重複確認，就是註冊時"確認密碼"的欄位，因此前端回傳的password與password_confirmation必須一致
+                            
+                
+                        ];
+                    }
+                } 
+            // 10.到(AuthController.php)來使用(CreateUser.php)的Request
+                use App\Http\Requests\CreateUser;
+                public function signup(CreateUser $request){
+                    // 這裡是拿來建立帳號密碼的，前端傳資料過來，建立會員的帳號密碼
+                    $validatedData = $request->validated();  // 使用validated來呼叫資料，因為驗證通過所以可以呼叫了
+                    $user = new User([
+                        'name'=>$validatedData['name'],
+                        'email'=>$validatedData['email'],
+                        'password'=>bcrypt($validatedData['password']), 
+                        // 'password'=>$validatedData['password']會直接顯示密碼，因此須加入bcrypt('123456')來保護密碼
+                        // 沒bcrypt的話，打123456，會直接跑出123456
+                        // 使用加密函式，bcrypt('123456')，會跑出$2y$10$AKwOUXmULly7Uc2Nsrdwqul8j.GjK6xKrXfYI2McJqiHh1cMb7/dm，以此來保護密碼
+                    ]);
+                    $user->save(); // 將資料儲存
+                    return response('success',201);
+                }
+            // 11.到web.php設定路由
+                Route::post('signup','AuthController@signup');
+            // 12.Postman測試POST
+                // 位置：http://127.0.0.1:8000/signup
+    // 3-7.會員登入 - 會員登入功能製作
+        // 概念：把帳號跟密碼輸入給Laravel，然後利用auth與Passport相關套件，來解析是哪位User並產生通行證(Token)，
+        //       然後將通行證(Token)轉交給客戶端，每使用任何一項服務都要檢查一次通行證，並且是不可過期的。
+            // 1.到(AuthController.php)做出基本的檢驗與錯誤的帳號密碼回傳
+                use Illuminate\Support\Facades\Auth;
+                public function login(Request $request){ // 此處指單純接使用者回傳的資料，並沒有要做格式驗證
+                    $validatedData = $request->validate([ // 基礎資料驗證，此處的用意為表格email、password欄位不得為空
+                        'email'=>'required|string|email',
+                        'password'=>'required|string',
+                    ]);
+                    if(!Auth::attempt($validatedData)){ // attempt為，直接將回傳的帳號密碼拿去登入，因此此處為"如果登入失敗"
+                        return response('授權失敗',401);
+                    }
+                }
+            // 2.(web.php)建立路由
+                Route::post('login','AuthController@login');
+            // 3.Postman測試POST錯誤的帳號密碼是否正確回傳授權失敗
+                // 位置：http://127.0.0.1:8000/login
+            // 4.到(AuthController.php)新增登入成功的程式碼
+                public function login(Request $request){ // 此處指單純接使用者回傳的資料，並沒有要做格式驗證
+                    $validatedData = $request->validate([ // 基礎資料驗證，此處的用意為表格email、password欄位不得為空
+                        'email'=>'required|string|email',
+                        'password'=>'required|string',
+                    ]);
+                    if(!Auth::attempt($validatedData)){ // attempt為，直接將回傳的帳號密碼拿去登入，因此此處為"如果登入失敗"
+                        return response('授權失敗',401);
+                    }
+                    // 授權通過後，user的資料會被放進$request，因此使用$request->user()來撈取user的資料。
+                    $user = $request->user();
+                    dd($user);
+                }
+            // 5.Postman測試POST 是否正確回傳
+                // 位置：http://127.0.0.1:8000/login
+            // 6.到(AuthController.php)新增登入成功後的通行證(Token)
+                public function login(Request $request){ // 此處指單純接使用者回傳的資料，並沒有要做格式驗證
+                    $validatedData = $request->validate([ // 基礎資料驗證，此處的用意為表格email、password欄位不得為空
+                        'email'=>'required|string|email',
+                        'password'=>'required|string',
+                    ]);
+                    if(!Auth::attempt($validatedData)){ // attempt為，直接將回傳的帳號密碼拿去登入，因此此處為"如果登入失敗"
+                        return response('授權失敗',401);
+                    }
+                    // 授權通過後，user的資料會被放進$request，因此使用$request->user()來撈取user的資料。
+                    $user = $request->user();
+                    $tokenResult = $user->createToken('Token'); 
+                    //此處的createToken函式是來自於app/Http/Model/User內的use Laravel\Passport\HasApiTokens;
+                    $tokenResult->token->save();
+                    // 此處將token儲存，以利後續操作與驗證授權
+                    return response(['token' => $tokenResult->accessToken]);
+                }
+            // 7.Postman測試POST，看登入成功後，會不會把accessToken印出來(確認回傳正常，代表會員登入功能已完成)
+                // 位置：http://127.0.0.1:8000/login
+                // 參考網站：https://jwt.io/
+                    // 可將accessToken進行解析的網站。
+                    // 操作流程：進入網站 -> Encoded -> 將accessToken貼到文字區域內
+                    // 介紹：
+                        // typ：資料類型
+                        // alg：演算法
+            // 8.到SQL的資料表oauth_access_token，可以看到TOKEN的相關資訊
+    // 3-8.會員登出 Auth 套件應用 - 登出與獲取使用者資料和進階路由概念
+        // 如何讓通行證(Token)過期，不讓此通行證繼續使用。
+            // 1.到(AuthController.php)，建立受保護的API端點
+                public function user(Request $request){
+                    return response(
+                        $request->user() // user的資料
+                    );
+                }
+            // 2.web.php建立路由
+                Route::group([
+                    'middleware'=> 'auth:api'
+                ],function(){
+                    Route::get('user','AuthController@user');
+                });
+            // 3.Postman測試，確認可依照憑證拿到user資料(確認Token的有效性)
+                // 位置：http://127.0.0.1:8000/user
+                // 先取得前次的accessToken，選到Authorization -> Type，選擇Bearer Type -> 將accessToken的碼貼到Token
+            // 4.到(AuthController.php)建立登出並註銷通行證(Token)
+                public function logout(Request $request){
+                    $request->user()->token()->revoke(); // revoke，讓通行證(Token)失效
+                    return response(
+                        ['message'=>'成功登出'] // 回傳登出成功
+                    );
+                }
+            // 5.到web.php，新增路由
+                Route::group([
+                    'middleware'=> 'auth:api'
+                ],function(){
+                    Route::get('user','AuthController@user');
+                    Route::get('logout','AuthController@logout'); // 因登出的人必定是已經登入的狀態，因此需要經過驗證才可以登出。
+                });
+            // 6.Postman測試是否成功登出並註銷通行證(Token)
+                // 切記以下兩個測試時，都要放剛才的通行證到Authorization
+                // 登出位置：http://127.0.0.1:8000/logout
+                // 通行證是否註銷位置：http://127.0.0.1:8000/user
+            // 7.到(/app/Http/Middleware/Authenticate.php)，畢竟通行證(Token)已被註銷，總不能在登入失敗時跑出亂碼，因此要來進行設置
+                // 將整個redirectTo的function，註解掉，因為今天用不到
+                    // protected function redirectTo(Request $request): ?string // redirectTo，為登入失敗時會訊息來自於此
+                    // {
+                    //     // return $request->expectsJson() ? null : route('login'); // 導流至login，但今天不需要(but not today，這句英文沒啥意函，只是想這樣打而已)
+                    // }
+            // 8.到(app/Exceptions/Handler.php)，不管是登出後再度使用通行證(Token)，還是其他的狀況，都會回傳'授權失敗'。
+                use Illuminate\Auth\AuthenticationException;
+                protected function unauthenticated($request, AuthenticationException $exception)
+                {
+                    // 這是handler.php原先就有的函式，但在此處是為了要將原本的函式覆寫
+                    // 當發現錯誤時，會來執行這裡的程式
+                    return response('授權失敗',401);
+                }
+            // 9.Postman測試GET
+                // 位置：http://127.0.0.1:8000/user
+    // 3-9.購物車與會員功能整合
+            // 1.終端輸入"php artisan make:migration add_user_id_to_carts"，因每個服務與購物車都是不同人，因此要來個別對應
+            // 2.到(database/migrations/add_user_id_to_carts)
+                public function up(): void
+                {
+                    Schema::table('carts', function (Blueprint $table) {
+                        $table->foreignId('user_id')->constrained('users')->after('id'); // 此處使用foreignId而非integer，是因為要綁定使用者，以防止不存在的人，在使用不存的Cart。
+                        // constrained，表示user_id綁定在users內的id欄位
+                        // after，使欄位產生在id之後
+                    });
+                }
+                public function down(): void
+                {
+                    Schema::table('carts', function (Blueprint $table) {
+                        $table->dropConstrainedForeignId('user_id');
+                        // dropConstrainedForeignId會先將constrained的綁定關係解除，才進行drop(欄位取消)。
+                    });
+                }
+            // 3.SQL中的users的id先改成0
+                // 原因：因migration在執行時，會從id:0開始，而目前直接就是id:1，會導致migration執行失敗，因此必須先將id改成0。
+            // 4.終端輸入"php artisan migrate"，並到SQL檢查資料表cart，是否有新增user_id欄位，並確認foreign有被正確設置。
+            // 5.到(app/Models/Cart.php)
+                protected $guarded = ['']; // 此處為黑名單
+            // 6.到(web.php)，將放在外面的carts與cart-items的Routes放到group裡面
+                Route::group([
+                    'middleware'=> 'auth:api'
+                ],function(){
+                    Route::get('user','AuthController@user');
+                    Route::get('logout','AuthController@logout');
+                    Route::resource('carts','CartController');
+                    Route::resource('cart-items','CartItemController'); // 官方建議使用'-'而非'_'
+                });
+            // 7.到(CartController.php)
+                public function index()
+                {
+                        $user = auth()->user(); // 透過此函式可拿到已通過認證的user本身的資料。
+                        $cart = Cart::with(['cartItems'])
+                        // 此處的cartItems為/app/Http/Model/Cart.php的cartItems
+                        // with()，Model會自動去尋找Cart相關聯的資料(有建立過關聯的)，並順便撈出來，可解決n+1 cubed的問題
+                        //       ，且with會暫存，因此不必下重複的SQL語法來撈取同樣的資料
+                        ->where('user_id',$user->id)
+                        // 此處用於確認此user的id是否存在，沒有這個id(人)的購物車才須要去增加。
+                        ->firstOrCreate(['user_id' => $user->id]);
+                    // firstOrCreate()，Model判斷表中有無資料，若無則自動建立
+                    return response($cart); // 茲因得到的可能是個物件或者其他類型，因此需轉成Collection後才可回傳
+                }
+            // 8.終端輸入"php artisan serve"
+            // 9.Postman測試
+                // A.先註冊一個新的帳號
+                    // 位置：http://127.0.0.1:8000/signup
+                // B.登入，並取得新的通行證(Token)
+                    // 位置：http://127.0.0.1:8000/login
+                // C.建立新Cart資料
+                    // 將取得的通行證(Token)放入Authorization的Token中，並選擇Bearer Token。
+                    // 位置：http://127.0.0.1:8000/carts
+                // D.將上一個動作(C.建立新Cart資料)再執行一次，會取得剛剛建立的cart資料
+                // E.測試新增一筆cart-item
+                    // 將取得的通行證(Token)放入Authorization的Token中，並選擇Bearer Token。
+                    // 位置：http://127.0.0.1:8000/cart-items
+                // F.登出
+                    // 將取得的通行證(Token)放入Authorization的Token中，並選擇Bearer Token。
+                    // 位置：http://127.0.0.1:8000/logout
+    // 3-10.購物車結帳功能製作
+        // 因為結帳會牽涉到兩個問題，製造訂單與訂單中的商品，就跟Cart跟CartItem的概念很相似
+        // A.製作訂單會需要用到的表格欄位，並梳理目前的資料庫模式
+            // 1.終端輸入"php artisan make:migrationde create_orrs_and_order_items"
+            // 2.到(database/migration/create_orrs_and_order_items.php)
+                public function up(): void
+                {
+                    Schema::create('orders', function (Blueprint $table) {
+                        $table->id();
+                        $table->foreignId('user_id')->constrained('users'); 
+                        // 因為一個user會有多個orders的id，因此是一對多關係，並連結到資料表users。
+                        $table->foreignId('cart_id')->constrained('carts'); 
+                        // order跟cart有關聯，一個購物車只會對應到一個訂單
+                        $table->boolean('is_shipped')->default(0);
+                        //  is_shipped欄位，代表著是否被運送，預設是false也就是還沒運送
+                        $table->timestamps();
+                    });
+                    Schema::create('order_items', function (Blueprint $table) {
+                        $table->id();
+                        $table->foreignId('product_id')->constrained('products'); 
+                        $table->foreignId('order_id')->constrained('orders');  // 因為order_items是屬於order底下的附屬，因此需產生連結
+                        $table->timestamps();
+                    });
+                }
+                public function down(): void
+                {
+                    Schema::dropIfExists('orders');
+                    Schema::dropIfExists('order_items');
+                }
+            // 3.終端輸入"php artisan migrate"
+        // B.製作Models將原先資料的關聯性都建立好
+            // 4.製作model，到(app/Models/)找一個Model複製，並改名成Order.php，並在Model中建立關聯性
+                namespace App\Models;
+
+                use Illuminate\Database\Eloquent\Factories\HasFactory;
+                use Illuminate\Database\Eloquent\Model;
+                
+                class Order extends Model
+                {
+                    use HasFactory;
+                    protected $guarded = ['']; // 此處為黑名單
+                    public function orderItems(){
+                        return $this->hasMany(OrderItem::class); //設定好關聯Order.php的底下有OrderItem
+                    }
+                    public function user(){
+                        return $this->belongsTo(User::class); //設定好關聯Order.php是User的附屬
+                    }
+                    public function cart(){
+                        return $this->belongsTo(Cart::class); //設定好關聯Order.php是Cart的附屬
+                    }
+                }
+            // 5.製作model，到(app/Models/)找一個Model複製，並改名成OrderItem.php，並在Model中建立關聯性
+                namespace App\Models;
+                
+                use Illuminate\Database\Eloquent\Factories\HasFactory;
+                use Illuminate\Database\Eloquent\Model;
+                
+                class OrderItem extends Model
+                {
+                    use HasFactory;
+                    protected $guarded = ['']; // 此處為黑名單
+                    public function product(){
+                        return $this->belongsTo(Product::class); //設定好Order.php要怎麼去取得OrderItem
+                    }
+                    public function order(){
+                        return $this->belongsTo(Order::class); //設定好Order.php要怎麼去取得User
+                    }
+                }
+            // 6.製作model，到(app/Models/Product.php)
+                public function cartItems(){
+                    return $this->hasMany(CartItem::class); //設定好Product.php要怎麼去取得CartItem
+                }
+                public function orderItems(){
+                    return $this->hasMany(OrderItem::class); //設定好Product.php要怎麼去取得OrderItems
+                }
+            // 7.製作model，到(app/Models/Order.php)
+                public function cartItems(){
+                    return $this->hasMany(CartItem::class); //設定好關聯Cart.php底下有CartItem
+                }
+                public function user(){
+                    return $this->belongsTo(User::class); //設定好關聯Cart.php是User的附屬
+                }
+                public function order(){
+                    return $this->hasOne(Order::class); //設定好關聯Cart.php是底下只會有一個Order
+                }
+            // 8.終端輸入"php artisan tinker"，先來檢查關聯模組是否都設置正確，然後關閉tinker。
+        // C.結帳系統開始製作
+            // 9.終端輸入"php artisan make:migration add_checked_to_carts"，開始建立結帳系統
+            // 10.到(database/migration/add_checked_to_carts.php)
+                public function up(): void
+                {
+                    Schema::table('carts', function (Blueprint $table) {
+                        $table->boolean('checkouted')->default(0)->after('user_id'); 
+                    });
+                }
+                public function down(): void
+                {
+                    Schema::table('carts', function (Blueprint $table) {
+                        $table->dropColumn('checkouted');
+                    });
+                }
+            // 11.終端輸入"php artisan migrate"
+        // D.邏輯製作(資料)-資料操作部分可以把邏輯留在Model，因為Model是處理資料面的問題，Controller是處理流程面的問題
+            // 12.到(Cart.php)建立checkout函式
+                public function checkout(){
+                    $order = $this->order()->create([
+                        'user_id'=> $this->user_id, // 直接指向正被使用的購物的user_id
+                    ]);
+                }
+            // 13.終端輸入"php artisan tinker"，並輸入"Cart::find(4)->checkout()"，以此來確認程式碼是正確的，並到SQL的orders確認是否有新產生訂單，並先將新訂單刪除
+            // 14.到(Cart.php)
+                public function checkout(){
+                    $order = $this->order()->create([
+                        'user_id'=> $this->user_id, // 直接指向正被使用的購物的user_id
+                    ]);
+                    foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                        $order->orderItems()->create([
+                            'product_id'=>$cartItem->product_id,
+                            'price' => $cartItem->product->price
+                        ]);
+                    }
+                    $this->update(['checkouted'=>true]);
+                    $order->orderItems; // 在order中也要跟著回傳orderItems
+                    return $order; // 回傳訂單長甚麼樣子
+                }
+        // E.邏輯製作(流程)-Controller，因為Model是處理資料面的問題，Controller是處理流程面的問題
+            // 15.到(User.php)，使得可以從cart資料可以在auth()->user()中找到 -> auth()->user()->carts()
+                public function carts(){
+                    return $this->hasMany(Cart::class);
+                }
+            // 16.到(CartController.php)
+                public function checkout(){
+                    $user = auth()->user();
+                    $cart = $user->carts()->where('checkouted',false)->with('cartItems')->first(); // 取得還未結帳的第一筆資料
+                    // 此處撈出cart資料時也會跟著把cartItems資料給撈出來，會變成使用lazyload的方式，就可以少掉下SQL語法的效能，來節省效能。
+                    if($cart){
+                        $result = $cart->checkout(); // 把$cart抓到的資料來執行結帳(checkout函數)
+                        return response($result);
+                    }
+                    else{
+                        return response('沒有購物車',400);
+                    }
+                }
+            // 17.終端輸入"php artisan tinker"，輸入"Cart::find(4)->checkout()"app
+                // 檢查資料表order是否有產生訂單
+                // 檢查資料表cart_items的cart_id(4)有幾筆訂單，並至order_items是否有cart_items的cart_id(4)底下的訂單轉過來到order_items中
+                // 檢查資料表cart，id(4)的資料的checkouted是否從0(fasle)被改成1(true)
+            // 18.Controller行為測試-資料清乾淨
+                // 將資料表cart，id(4)的資料的checkouted的1改成0
+                // 將資料表order_items，id(4)底下的訂單刪除
+                // 將檢查資料表order產生的新訂單刪除
+            // 19.到(web.php)新增路由
+                Route::group([
+                    'middleware'=> 'auth:api'
+                ],function(){
+                    Route::get('user','AuthController@user');
+                    Route::get('logout','AuthController@logout');
+                    Route::post('carts/checkout','CartController@checkout'); // 此筆為此次新增的
+                    Route::resource('carts','CartController');
+                    Route::resource('cart-items','CartItemController'); // 官方建議使用'-'而非'_'
+                });
+            // 20.終端輸入"php artisan serve"
+            // 21.Postman測試POST
+                // 位置：http://127.0.0.1:8000/carts/checkout
+                // 切記要先登入
+    // 3-11.新增購物車功能 - 結帳功能優化 + Vip 優惠
+        // A.結帳功能優化
+            // 1.到(CartController.php)，新增判斷條件，不要撈出已經結帳的購物車，以此來節省效能
+                public function index()
+                {
+                        $user = auth()->user(); // 透過此函式可拿到已通過認證的user本身的資料。
+                        $cart = Cart::with(['cartItems'])
+                        // 此處的cartItems為/app/Http/Model/Cart.php的cartItems
+                        // with()，Model會自動去尋找Cart相關聯的資料(有建立過關聯的)，並順便撈出來，可解決n+1 cubed的問題
+                        //       ，且with會暫存，因此不必下重複的SQL語法來撈取同樣的資料
+                        ->where('user_id',$user->id)
+                        // 此處用於確認此user的id是否存在，沒有這個id(人)的購物車才須要去增加。
+                        ->where('checkouted',false)
+                        // 新增此判斷條件，不要撈出已經結帳的購物車，以此來節省效能
+                        ->firstOrCreate(['user_id' => $user->id]);
+                    // firstOrCreate()，Model判斷表中有無資料，若無則自動建立        
+                    return response($cart); // 茲因得到的可能是個物件或者其他類型，因此需轉成Collection後才可回傳
+                }
+        // B.Vip 優惠
+            // 1.終端輸入"php artisan make:migration add_checkout_feature_columns"
+            // 2.到(database/migration/add_checkout_feature_columns.php)
+                public function up(): void
+                {
+                    Schema::table('order_items', function (Blueprint $table) {
+                        $table->integer('price')->after('order_id'); 
+                    });
+                    Schema::table('users', function (Blueprint $table) {
+                        $table->integer('level')->default(1)->after('id'); 
+                    });
+                }
+                public function down(): void
+                {
+                    Schema::table('order_items', function (Blueprint $table) {
+                        $table->dropColumn('price'); 
+                    });
+                    Schema::table('users', function (Blueprint $table) {
+                        $table->dropColumn('level'); 
+                    });
+                }
+            // 3.終端輸入"php artisan migrate"
+            // 4.到(Cart.php)Model
+                private $rate = 1; // 費率
+                public function checkout(){
+                    $order = $this->order()->create([
+                        'user_id'=> $this->user_id, // 直接指向正被使用的購物的user_id
+                    ]);
+                    if($this->user->level ==2){
+                        $this->rate = 0.8; //如果是vip(使用者等級2)，就打八折
+                    }
+                    foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                        $order->orderItems()->create([
+                            'product_id'=>$cartItem->product_id,
+                            'price' => $cartItem->product->price *$this->rate
+                        ]);
+                    }
+                    $this->update(['checkouted'=>true]);
+                    $order->orderItems;
+                    return $order; // 回傳訂單長甚麼樣子
+                }
+            // 5.終端輸入"php artisan serve"，並到SQL把資料表user的level從1改成2
+            // 6.Postman測試POST，查看價格有無跟著折扣
+                // 位置：http://127.0.0.1:8000/carts/checkout
+    // 3-12.新增購物車功能 - 商品數量檢查，邏輯防呆
+        // A.在放入購物車時就要先告訴使用者商品不足
+            // 1.到(CartitemController.php)，新增擴充商品數量檢查
+                use App\Models\Product;
+                public function store(Request $request)
+                {   
+                    $messages = [
+                        'required' => ':attribute 是必要的', // 必填欄位 => '(自動抓欄位名稱)  是必要的'
+                        'between'=>':attribute 的輸入 :input 不在 :min 和 :max 之間' // 之間 => '(自動抓欄位名稱) 的輸入 (input) 不在 (min) 和 (max) 之間'
+                    ];
+                    $validator = Validator::make($request->all(),[
+                        'cart_id'=>'required|integer', //設定此欄位為必填且為int的意思，找其他意思可以到參考連結找：https://laravel.com/docs/10.x/validation#available-validation-rules
+                        'product_id'=>'required|integer',
+                        'quantity'=>'required|integer|between:1,10',//設定此欄位為必填且為int，且數值必須為1~10的意思
+                    ],$messages);
+                    if($validator->fails()){ // 如果$validator驗證fails了，就回傳errors
+                        return response($validator->errors(),400); // 回傳$validator的errors訊息，並回傳400告訴使用者，此為錯誤訊息
+                    }
+                    $validateData = $validator->validate(); // 此為將驗證過的資料，儲存到$validateData。
+            
+                    // 此步驟新增的資料 ↓
+                    $product = Product::find($validateData['product_id']);
+                    if(!$product->checkQuantity($validateData['quantity'])){ // 如果檢查數量有問題就進來判斷
+                        return response($product->title.'數量不足',400);
+                    }
+                    // 此步驟新增的資料 ↑
+
+                    $cart = Cart::find($validateData['cart_id']); //將結果放入$cart中
+                    $result = $cart->cartItems()->create(['product_id' => $product->id,
+                                                          'quantity' =>$validateData['quantity'],]); 
+                    return response()->json($result);
+                }
+            // 2.到(Product.php)  
+                public function checkQuantity($quantity){
+                    if($this->quantity < $quantity){
+                        return false; // 資料庫內的數量小於要被訂購的數量，就回傳false
+                    }   
+                    return true; // 沒事就true
+                }
+            // 3.Postman測試POST
+                // 位置：http://127.0.0.1:8000/cart-items
+        // B.在結帳時，要告訴使用者商品不足
+            // 1.到(Cart.php)改寫結帳函式
+                public function checkout(){
+                    //檢查要在創造前
+                    foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                        $product = $cartItem->product;
+                        if(!$product->checkQuantity($cartItem->quantity)){
+                            return $product->title.'數量不足'; //執行到此會直接結束foreach，並回傳此
+                        }
+                    }
+                    $order = $this->order()->create([
+                        'user_id'=> $this->user_id, // 直接指向正被使用的購物的user_id
+                    ]);
+                    if($this->user->level ==2){
+                        $this->rate = 0.8; //如果是vip(使用者等級2)，就打八折
+                    }
+                    foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                        $order->orderItems()->create([
+                            'product_id'=>$cartItem->product_id,
+                            'price' => $cartItem->product->price *$this->rate
+                        ]);
+                    }
+            
+                    $this->update(['checkouted'=>true]);
+                    $order->orderItems;
+                    return $order; // 回傳訂單長甚麼樣子
+                }
+            // 2.到(Product.php)，產品購買後要更新產品數量
+                protected $guarded =['']; // 補上此，讓資料表product的欄位都是可以被更新的
+            // 3.到(Cart.php)
+                public function checkout(){
+                    //檢查要在創造前
+                    foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                        $product = $cartItem->product;
+                        if(!$product->checkQuantity($cartItem->quantity)){
+                            return $product->title.'數量不足'; //執行到此會直接結束foreach，並回傳此
+                        }
+                    }
+                    $order = $this->order()->create([
+                        'user_id'=> $this->user_id, // 直接指向正被使用的購物的user_id
+                    ]);
+                    if($this->user->level ==2){
+                        $this->rate = 0.8; //如果是vip(使用者等級2)，就打八折
+                    }
+                    foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                        $order->orderItems()->create([
+                            'product_id'=>$cartItem->product_id,
+                            'price' => $cartItem->product->price *$this->rate
+                        ]);
+                        // 此步驟新增的資料 ↓
+                        $cartItem->product->update(['quantity'=>$cartItem->product->quantity - $cartItem->quantity]);
+                        // 購買後將產品減少
+                        // 此步驟新增的資料 ↑
+                    }
+            
+                    $this->update(['checkouted'=>true]);
+                    $order->orderItems;
+                    return $order; // 回傳訂單長甚麼樣子
+                }
+            // 4.Postman測試POST
+                // 位置：http://127.0.0.1:8000/carts/checkout
+
+                
+                
+                
+            
+            
+
             
 
 
@@ -807,6 +1392,359 @@
             // 位置：http://127.0.0.1:8000/product
             // Body:title:cool,content:apple
             // 回傳'dirty'或者設定好的其他回答，則是成功，若content並非設定好的dirtywords，則會回傳該回傳的資料。
+
+    // 10-4.資料驗證(資料清洗)
+        // 概念：例如會員機制的密碼數要9碼，就來檢驗是否有超過9碼，前後端都會有檢查系統，因此除了前端檢查以外，後端
+                // 的二次檢查會比較保險，也有可能前端與後端的密碼數量通知不同，才要分開設置，又分為兩種設置方法。
+        // A.在Controller進行驗證
+            // I.到(CartItemController.php)
+                use Illuminate\Support\Facades\Validator;
+                public function store(Request $request)
+                {   
+                    $messages = [
+                        'required' => ':attribute 是必要的', // 必填欄位 => '(自動抓欄位名稱)  是必要的'
+                        'between'=>':attribute 的輸入 :input 不在 :min 和 :max 之間' // 之間 => '(自動抓欄位名稱) 的輸入 (input) 不在 (min) 和 (max) 之間'
+                    ];
+                    $validator = Validator::make($request->all(),[
+                        'cart_id'=>'required|integer', //設定此欄位為必填且為int的意思，找其他意思可以到參考連結找：https://laravel.com/docs/10.x/validation#available-validation-rules
+                        'product_id'=>'required|integer',
+                        'quantity'=>'required|integer|between:1,10',//設定此欄位為必填且為int，且數值必須為1~10的意思
+                    ],$messages);
+                    if($validator->fails()){ // 如果$validator驗證fails了，就回傳errors
+                        return response($validator->errors(),400); // 回傳$validator的errors訊息，並回傳400告訴使用者，此為錯誤訊息
+                    }
+                    $validateData = $validator->validate(); // 此為將驗證過的資料，儲存到$validateData。
+            
+                    // 新增資料
+                    DB::table('cart_items')->insert(['cart_id' => $validateData['cart_id'],
+                                                'product_id' => $validateData['product_id'],
+                                                'quantity' =>$validateData['quantity'],
+                                                'created_at' => now(),
+                                                'updated_at'=>now()]);
+                    return response()->json(true); // 回傳true是告訴前端(或者測試人員)，正確回傳(json為使用json格式回傳)
+                }
+            // II. Postman測試POST
+                // 位置：http://127.0.0.1:8000/cart-items
+
+
+        // B.定義 Validator
+            // 參考網站：https://laravel.com/docs/10.x/validation#form-request-validation
+            // I.終端輸入"php artisan make:request (Validator名稱)" -> php artisan make:request UpdateCartItem
+            // II.到app/Http/Requests/UpdateCartItem.php
+                // 授權驗證部分，還未用到因此先暫時改成true
+                public function authorize(): bool
+                {
+                    return true;
+                }
+                public function rules(): array
+                {
+                    return [
+                        'quantity'=>'required|integer|between:1,10'
+                    ];
+                }
+                public function messages(): array //這裡不須額外寫甚麼時候執行，因為Laravel會自己來找
+                {
+                    return [
+                        'quantity.between'=>'數量必須小於10' //between驗證到錯誤時，回傳的messages
+                    ];
+                }
+            // III.新增檔案/app/Http/Requests/APIRequest.php
+                // 因沒有新增APIRequest.php檔案，驗證過後的回覆，會被傳到上一頁，導致回覆被洗掉
+                // 檔案內的程式碼
+                    <?php
+
+                    namespace App\Http\Requests;
+                    
+                    use Illuminate\Foundation\Http\FormRequest;
+                    
+                    class APIRequest extends FormRequest
+                    {
+                        
+                    }
+            // IV.回到app/Http/Requests/UpdateCartItem.php
+                // 將
+                class UpdateCartItem extends FormRequest {}
+                //  ↓ 改成 ↓ 
+                class UpdateCartItem extends APIRequest {}
+                // 不需要增加use的關鍵字來引入，因為他們在同一個檔案底下
+                // 資料層級變成 爺爺:FormRequest 父親:APIRequest 兒子:UpdateCartItem
+            // V.回到/app/Http/Requests/APIRequest.php
+                use Illuminate\Http\Exceptions\HttpResponseException;
+                class APIRequest extends FormRequest
+                {
+                    protected function failedValidation(Validator $validator)
+                    // 覆蓋掉FormRequest中的函式，並使用Illuminate\Contracts\Validation\Validator;來幫助檢查
+                    {
+                        throw new HttpResponseException(response(['errors'=>$validator->errors(),400])); //回傳錯誤
+                    } 
+                }
+            // VI.到/app/Http/Controllers/Web/CartItemController.php
+                use App\Http\Requests\UpdateCartItem;
+                public function update(UpdateCartItem $request, string $id)
+                {
+                    //更新資料
+                    $form = $request->validated(); //驗證好的資料
+                    DB::table('cart_items')->where('id',$id) // 新增where是因為如果只有使用update會更新全部資料，此處只需要更新對應的itemid即可
+                                            ->update(['quantity' =>$form['quantity'],
+                                                    'updated_at'=>now()]);
+                    return response()->json(true); // 回傳true是告訴前端(或者測試人員)，正確回傳(json為使用json格式回傳)
+                }
+            // VII.Postman測試PUT
+                // 位置：http://127.0.0.1:8000/cart-items/2
+    // 10-5.Eloquent ORM(Model)
+        // ORM：指資料庫與應用程式的中間層，可有效保護資料庫，例：DB,Eloquent 都可當作Laravel的ORM。
+        // A.為何使用Eloquent？
+                // i.Eloquent相當於Laravel MVC中的M。
+                // ii.支援DB常見的各種SQL語法
+                // iii.提供現在化常見預設結構功能，包括PK(Primary Key)、Timestamp等等
+                // iv.方便建立與其他資料表連結，讓程式碼更簡潔易懂(如多欄位一次運算)
+        // B.建構Model(Eloquent ORM(Model))
+            // I.終端輸入"php artisan make:model 模組名稱(此處為CartItem)"
+            // II.到/app/Model/CartItem.php
+            // III.終端輸入"composer dump-autoload" ，使得檔案快速重新讀取一次
+            // IV.終端輸入"php artisan tinker"，建立一個執行Laravel的環境，使得可以快速驗證程式是否正確。
+            // V.終端輸入"CartItem::all()" 模組名稱(此處為CartItem)::all()，撈出模組內的所有資料，包含DB內資料表cart_items的資料
+                // 可以抓到DB內資料表cart_items的資料的原因：會將Class的CartItem轉成小寫的，並且也將cart_items的資料抓過來
+            // VI.終端輸入"CartItem::where('id','>',3)->get()" ，跟一般的語法一樣可以使用
+
+        // C.設定欄位可否更新(白名單)
+            // I.到/app/Model/CartItem.php(自定義的)
+                class CartItem extends Model
+                {
+                    use HasFactory;
+                    // 為甚麼protected，單純是官方設定的，記得就對了
+                    protected $fillable = ['quantity','product_id'];// 此處為白名單功能
+                }
+            // II.終端輸入"php artisan tinker"，建立一個執行Laravel的環境，使得可以快速驗證程式是否正確。
+            // III.終端輸入"CartItem::find(3)"，找出id=3的資料。
+            // IV.終端輸入"CartItem::find(3)->update(['product_id=>2,'quantity'=>10])"，測試修改資料
+                // 此處若protected $fillable的部分沒有'product_id'就會回傳errors。
+            // V.終端輸入"CartItem::find(3)"，查看id=3的資料是否正常被修改，可注意updated_at欄位，因為使用update方法會自動更新時間
+
+        // D.設定欄位可否更新(黑名單)
+            // I.到/app/Model/CartItem.php(自定義的)
+                class CartItem extends Model
+                {
+                    use HasFactory;
+                    // 為甚麼protected，單純是官方設定的，記得就對了
+                    protected $guarded = ['cart_id']; // 此處為黑名單
+                }
+            // II.終端輸入"php artisan tinker"，建立一個執行Laravel的環境，使得可以快速驗證程式是否正確。
+            // III.終端輸入"CartItem::find(3)"，找出id=3的資料。
+            // IV.終端輸入"CartItem::find(3)->update(['cart_id'=>10])"，測試修改資料
+                // 回傳依然是true，但資料不會被改變
+            // V.終端輸入"CartItem::find(3)"，查看id=3的資料是否正常被修改，可注意updated_at欄位，因為使用update方法會自動更新時間
+        
+        // E.設定欄位資料不可被撈取
+            // I.到/app/Model/CartItem.php(自定義的)
+                class CartItem extends Model
+                {
+                    use HasFactory;
+                    // 為甚麼protected，單純是官方設定的，記得就對了
+                    protected $hidden = ['updated_at']; // 此處為不會被回傳(response)的資料
+                }
+            // II.終端輸入"php artisan tinker"，建立一個執行Laravel的環境，使得可以快速驗證程式是否正確。
+            // III.終端輸入"CartItem::find(3)"，找出id=3的資料，會發現updated_at的欄位沒有被回傳或者被加上了"#"，變成#updated_at
+        
+        // F.設定欄位資料被撈取時執行函式改變資料
+            // I.到/app/Model/CartItem.php(自定義的)
+                class CartItem extends Model
+                {
+                    use HasFactory;
+                    // 為甚麼protected，單純是官方設定的，記得就對了
+                    protected $appends = ['current_price']; // 自訂屬性
+                    public function getCurrentPriceAttribute(){ //命名方式為固定的"get屬性Attribute"，如若沒有正確輸入，會跑出null
+                        return $this->quantity * 10; // 被撈到的資料的欄位quantity*10
+                    }
+                }
+            // II.終端輸入"php artisan tinker"，建立一個執行Laravel的環境，使得可以快速驗證程式是否正確。
+            // III.終端輸入"CartItem::find(3)->current_price "，找出id=3的資料，並回傳quantity欄位的數量*10，如若沒有正確輸入，會跑出null
+    // 10-6.ORM 中運用 Relation
+        // I.終端輸入"php artisan make:model Product"
+        // II.終端輸入"php artisan make:model Cart"
+        // III.讓CartItem.php屬於Prodcut.php和Cart.php，屬於一對多的關係，一是Product，多是讓CartItem
+                // (CartItem.php)
+                public function product(){// 使用單數是因為他是一對多，所以product是單數
+                    // 此函數執行時，會執行將此檔案屬於Product，去尋找資料表Product有無對應的product_id
+                    return $this->belongsTo(Product::class);
+                }
+            
+                public function cart(){// 使用單數是因為他是一對多，所以cart是單數
+                    // 此函數執行時，會執行將此檔案屬於cart，去尋找資料表cart有無對應的cart_id
+                    return $this->belongsTo(Cart::class);
+                }
+        // IV.終端輸入"php artisan tinker"，建立一個執行Laravel的環境，使得可以快速驗證程式是否正確。
+        // V.終端輸入"CartItem::find(3)"，找出id=3的資料
+        // VI.終端輸入"CartItem::find(3)->product"，可以找出找出id=3資料中的產品的屬性
+        // VII.終端輸入"CartItem::find(3)->cart"，可以找出找出id=3資料中的購物車的屬性
+        // VIII.建立雙向功能，接著來到Cart.php與Product.php
+            class Cart extends Model
+            {
+                use HasFactory;
+                public function cartItems(){
+                    return $this->hasMany(CartItem::class); //設定好Cart要怎麼去取得CartItem
+                }
+            }
+        // IX.終端輸入"composer dump-autoload" ，使得檔案快速重新讀取一次
+        // X.終端輸入"php artisan tinker"，建立一個執行Laravel的環境，使得可以快速驗證程式是否正確。
+        // XI.終端輸入"Cart::find(2)"，撈資料
+        // XII.終端輸入"Cart::find(2)->cartItems"，打撈所有跟Cart_id=2有相關的cartItems，且全是Collection，因為使用的是hasMany
+        // XII.終端輸入"Product::find(2)->productItems"，打撈所有跟Product_id=2有相關的ProductItems，且全是Collection，因為使用的是hasMany
+        
+    // 10-7.Query Builder 優化為 ORM
+        // A.修改(CartItemController.php)store
+            // I.到(CartItemController.php)改使用Model，修改store
+                use app\Models\Cart;
+                use app\Models\CartItem;
+                public function store(Request $request)
+                {   
+                    $messages = [
+                        'required' => ':attribute 是必要的', // 必填欄位 => '(自動抓欄位名稱)  是必要的'
+                        'between'=>':attribute 的輸入 :input 不在 :min 和 :max 之間' // 之間 => '(自動抓欄位名稱) 的輸入 (input) 不在 (min) 和 (max) 之間'
+                    ];
+                    $validator = Validator::make($request->all(),[
+                        'cart_id'=>'required|integer', //設定此欄位為必填且為int的意思，找其他意思可以到參考連結找：https://laravel.com/docs/10.x/validation#available-validation-rules
+                        'product_id'=>'required|integer',
+                        'quantity'=>'required|integer|between:1,10',//設定此欄位為必填且為int，且數值必須為1~10的意思
+                    ],$messages);
+                    if($validator->fails()){ // 如果$validator驗證fails了，就回傳errors
+                        return response($validator->errors(),400); // 回傳$validator的errors訊息，並回傳400告訴使用者，此為錯誤訊息
+                    }
+                    $validateData = $validator->validate(); // 此為將驗證過的資料，儲存到$validateData。
+                    $cart = Cart::find($validateData['cart_id']); //將結果放入$cart中
+                    $result = $cart->cartItems()->create(['product_id' => $validateData['product_id'],
+                                                        'quantity' =>$validateData['quantity'],]); 
+                    // 關於$result
+                        // 呼叫cart的附屬(Model)cartitem回傳資料，並去cart_items底下建立，
+                        // cart_id早已在Cart::find($validateData['cart_id']);時被指定，因此create內不需要再填入cart_id
+                        // created_at，Model會處理，因此此處可以不寫
+                        // updated_at，Model會處理，因此此處可以不寫
+                    return response()->json($result);
+                }
+
+            // II.Postman測試POST
+                // 位置：http://127.0.0.1:8000/cart-items
+        
+        // B.修改(CartItemController.php)update
+            // I.修改update
+                public function update(UpdateCartItem $request, string $id)
+                {
+                    //更新資料
+                    $form = $request->validated(); //驗證好的資料
+                    $item = CartItem::find($id);
+                    // $item->update(['quantity'=>$form['quantity']]); // 不想使用fill的話也可以使用update，那$item->save(); 就可以刪除。
+                    $item->fill(['quantity'=>$form['quantity']]); 
+                    // fill函式是填好但不儲存，因資料可能要經過很多個地方，每個地方填的東西都不同，，因此最後在儲存，能夠有效的減少下SQL的次數，來增進效能。
+                    $item->save(); // 將fill的資料經檢驗完後，儲存(更新)進去。
+                    return response()->json(true); // 回傳true是告訴前端(或者測試人員)，正確回傳(json為使用json格式回傳)
+                }
+            // II.Postman測試PUT
+                // 位置：http://127.0.0.1:8000/cart-items/2
+        // C.修改(CartItemController.php)Destory
+            // I.修改Destory
+                public function destroy(string $id)
+                {
+                    //刪除資料
+                    CartItem::find($id)->delete();
+                    return response()->json(true); // 回傳true是告訴前端(或者測試人員)，正確回傳(json為使用json格式回傳)
+                }
+            // II.Postman測試DELETE
+                // 位置：http://127.0.0.1:8000/cart_items/3
+        
+        // D.修改(CartController.php)Index，注意此處並非(CartItemController.php)，與前面的檔案不相同
+            // I.修改Index
+            public function index()
+            {
+                $cart = Cart::with(['cartItems'])->firstOrCreate(); // 此處的cartItems為/app/Http/Model/Cart.php的cartItems
+                // with()，Model會自動去尋找Cart相關聯的資料(有建立過關聯的)，並順便撈出來，可解決n+1 cubed的問題
+                //       ，且with會暫存，因此不必下重複的SQL語法來撈取同樣的資料
+                // firstOrCreate()，Model判斷表中有無資料，若無則自動建立
+                return response($cart); // 茲因得到的可能是個物件或者其他類型，因此需轉成Collection後才可回傳
+            }
+
+// 11.資料優化-預設資料產生器 - Seeder
+    // 位置：database/seeder/DatabaseSeeder.php
+        // A.情境：產品資料要先生成 (Create，可重複生成)
+            // I.到(DatabaseSeeder.php)
+                use App\Models\Product;
+                public function run(): void
+                {
+                    //使用Product::create()，在run code時可以自動建立Product
+                    Product::create(['tiitle'=>'測試資料','content'=> '測試內容','price'=> rand(0,300),'quantity'=>20]); 
+                    Product::create(['tiitle'=>'測試資料2','content'=> '測試內容','price'=> rand(0,300),'quantity'=>20]); 
+                    Product::create(['tiitle'=>'測試資料3','content'=> '測試內容','price'=> rand(0,300),'quantity'=>20]); 
+                        //rand(0,300)，產生0到300的整數
+                }
+            // II.終端輸入"php artisan db:seed"，創造run()的資料
+            // III.到資料表product確定資料生產成功，即可
+
+        // B.情境：自創Seeder (upsert，不會重複生成，保持單一性，依照設定的key值，製造出單一性的資料)
+            // I.終端輸入"php artisan make:seeder ProductSeeder"
+            // II.到(database/seeder/ProductSeeder.php)中
+                public function run(): void
+                {
+                    Product::upsert([
+                        ['id'=>6,'title'=>'固定資料','content'=> '固定內容','price'=> rand(0,300),'quantity'=>20],
+                        ['id'=>7,'title'=>'固定資料','content'=> '固定內容','price'=> rand(0,300),'quantity'=>20],
+                ],['id'],['price','quantity']); 
+                    // upsert(陣列1,陣列2,陣列3)：陣列1是產生固定的資料，陣列2是陣列1的key值為何，使得upsert進行生產時依據key值判斷是否需要建立，陣列3為可變更的白名單
+                    //upsert();，此指令版本需大於8.9，可使用"php artisan -V"查看Laravel版本，
+                    // 如過舊可使用"composer update laravel/framework"，來更新Laravel，
+                    // 如果報錯記憶體不足，可使用"COMPOSER_MEMORY_LIMIT=-1 composer update laravel/framework"
+                }
+            // III.終端輸入"php artisan db::seed --class=ProductSeeder"，指定跑ProductSeeder.php
+            // IV.到(DatabaseSeeder.php)，將程式碼變成以下
+                public function run(): void
+                {
+                    //使用Product::create()，在run code時可以自動建立Product
+                    Product::create(['title'=>'測試資料','content'=> '測試內容','price'=> rand(0,300),'quantity'=>20]); 
+                    Product::create(['title'=>'測試資料2','content'=> '測試內容','price'=> rand(0,300),'quantity'=>20]); 
+                    Product::create(['title'=>'測試資料3','content'=> '測試內容','price'=> rand(0,300),'quantity'=>20]); 
+                        //rand(0,300)，產生0到300的整數
+                    $this->call(ProductSeeder::class); // 前面的執行完，幫我執行ProductSeeder.php的東西
+                    $this->command->info('產生固定 product 資料'); // 產生文字在終端，提醒目前在產生資料
+                }
+            // V.終端"php artisan db:seed"，會跳出"產生固定 product 資料"
+            // VI.到資料表product，看看資料有沒有正常產出
+
+// 12.資料優化-軟刪除Soft delete 介紹
+    // 概念：軟刪除並非實質將資料刪除，而是標記一個欄位(Deleted at:)"幾月幾號幾點幾分Delete"，因此軟刪除的意思是此筆資料在意義上是被刪除的，好處是資料易復原。
+        // I.終端輸入"php artisan make:migration add_soft_delete_to_cart_items"
+        // II.到新增的Migreation(add_soft_delete_to_cart_items)
+            public function up(): void
+            {
+                Schema::table('cart_items', function (Blueprint $table) {
+                    $table->softDeletes(); // 預設標記Deleted at:
+                });
+            }
+            public function down(): void
+            {
+                Schema::table('cart_items', function (Blueprint $table) {
+                    $table->dropSoftDeletes(); 
+                });
+            }
+        // III.終端輸入"php artisan migrate"，此時資料表cart_items，會出現deleted at欄位
+        // IV.到(Cart.php)Model的
+            use Illuminate\Database\Eloquent\SoftDeletes;
+            use SoftDeletes;
+        // V.到(CartItemController.php)，程式碼無變動
+            public function destroy(string $id)
+            {
+                CartItem::find($id)->delete(); //軟刪除
+                // CartItem::withTrashed()->find($id)->forceDelete(); //硬刪除，直接刪除
+                return response()->json(true); // 回傳true是告訴前端(或者測試人員)，正確回傳(json為使用json格式回傳)
+            }
+        // VI.Postman測試DELETE
+            // 位置：http://127.0.0.1:8000/cart-items/6
+        // VII.會看到資料庫的某項資料已變成deleted at，在撈資料時，在"php artisan tinker"
+            // 使用Model方式，"CartItem::where('create_at','>','2023-05-31')->get();被軟刪除的資料將不會回傳
+            // 使用DB方式，"DB::table('cart_items')where('create_at','>','2023-05-31')->get();"，被軟刪除的資料將會回傳
+            
+                    
+
+
+
+
 
 
             

@@ -23,8 +23,19 @@ Route::get('/', function () {
 Route::resource('product','ProductController');
 // 此為針對product去產生各種網址，並且對應到ProductController。
 
-Route::resource('carts','CartController');
-Route::resource('cart_items','CartItemController');
+
+Route::post('signup','AuthController@signup');
+Route::post('login','AuthController@login');
+Route::group([
+    'middleware'=> 'auth:api'
+],function(){
+    Route::get('user','AuthController@user');
+    Route::get('logout','AuthController@logout');
+    Route::post('carts/checkout','CartController@checkout');
+    Route::resource('carts','CartController');
+    Route::resource('cart-items','CartItemController'); // 官方建議使用'-'而非'_'
+});
+
 
 Route::group(['middleware'=>'check.dirty'],function(){
     Route::resource('product','ProductController');

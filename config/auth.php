@@ -40,6 +40,11 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+     
+        'api' => [
+            'driver' => 'passport', // 使用API的方式登入，所以改成passport
+            'provider' => 'users',
+        ],
     ],
 
     /*
