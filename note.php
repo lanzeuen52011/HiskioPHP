@@ -1,4 +1,5 @@
 <?php
+// 入門篇
 // 基本觀念
     // CRUD：Create、Read、Update、Delete
     // Controller:是核心的邏輯集中地，為各種Controller的被繼承物件
@@ -955,14 +956,6 @@
             // 4.Postman測試POST
                 // 位置：http://127.0.0.1:8000/carts/checkout
 
-                
-                
-                
-            
-            
-
-            
-
 
 // 4.認識 Laravel 主資料架構 - Collection
     // 概念：提供流暢、便利的封裝來控制陣列資料
@@ -1739,7 +1732,1923 @@
         // VII.會看到資料庫的某項資料已變成deleted at，在撈資料時，在"php artisan tinker"
             // 使用Model方式，"CartItem::where('create_at','>','2023-05-31')->get();被軟刪除的資料將不會回傳
             // 使用DB方式，"DB::table('cart_items')where('create_at','>','2023-05-31')->get();"，被軟刪除的資料將會回傳
+
+
+
+// 進階篇
+// 1.製作具有 PHP 邏輯的 blade 頁面
+    // A.製作首頁
+        // 1.終端輸入"php artisan make:controller WebController"
+        // 2.到(WebController.php)
+            class WebController extends Controller
+            {
+                public function index(){
+                    $products = Product::all();
+                    return view('web.index',['products'=> $products]);
+                }
+                public function contactUs(){
             
+                }
+            }
+        // 3.新增檔案(resources/views/web/index.blade.php)
+        <div>
+            <a href="/">商品列表</a>
+            <a href="/contact-us">聯絡我們</a>
+        </div>
+        <h2>商品列表</h2>
+        <table>
+            <thead>
+                <tr>
+                    <td>標題</td>
+                    <td>內容</td>
+                    <td>價格</td>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($products as $product) <!-- 此處的$products為WebController.php中的'products'-->
+                <tr>
+                    <td>{{$product->title}}</td>
+                    <td>{{$product->content}}</td>
+                    <td>{{$product->price}}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        // 4.到(web.php)設定路由
+            // 將以下
+            Route::get('/', function () {
+                return view('welcome');
+            });
+            // 改成以下
+            Route::get('/','WebController@index');
+        // 5.終端輸入"php artisan serve"
+        // 6.瀏覽器輸入"http://localhost:8000/"
+    // B.製作聯絡我們
+        // 1.新增檔案(resources/views/web/contact_us.blade.php)
+        <div>
+            <a href="/">商品列表</a>
+            <a href="/contactUs">聯絡我們</a>
+        </div>
+        <h3>聯絡我們</h3>
+        <form action="">
+            請問你是：<input type="text"> <br>
+            請問你的消費時間：<input type="date"> <br>
+            你消費的商品種類：
+            <select name="" id="">
+                <option value="物品">物品</option>
+                <option value="食物">食物</option>
+            </select> <br>
+            <button>送出</button>
+        </form>
+        // 2.新增路由(web.php)
+         Route::get('/contact-us','WebController@contactUs');
+            
+// 2.具有Jquery的HTML
+    // A.EventListener
+        <button id="first" data-id="123" class="check">GO</button>
+        <button id="second" data-id="456"  class="check">YO</button>
+        <button id="third" data-id="789"  class="check">RO</button>
+        // jquery，被點擊的id會被印出來
+            $('.check').on('click',function(){
+                console.log($(this).attr('id')); //被點擊的id會被印出來
+                console.log($(this).data('id')); //被點擊的id會被印出來
+            })
+    // B.Ajax
+        .ajx({
+            "url":"localhost:8000/products",
+            "method":"GET",
+            "data":{"type":"food"},
+        })
+        .done(function(response){
+            console.log(response);
+        })
+    // C.讓前端連到正確的位置
+        // 1.到(index.blade.php)建立資料
+            <div>
+                <a href="/">商品列表</a>
+                <a href="/contact-us">聯絡我們</a>
+            </div>
+            <h2>商品列表</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <td>標題</td>
+                        <td>內容</td>
+                        <td>價格</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($products as $product) <!-- 此處的$products為WebController.php中的'products'-->
+                    <tr>
+                        <td>{{$product->title}}</td>
+                        <td>{{$product->content}}</td>
+                        <td>{{$product->price}}</td>
+                        <td><input class="check_product" type="button" value="確認商品數量" data-id="{{$product->id}}"></td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            
+            <script
+            src="https://code.jquery.com/jquery-3.7.0.min.js"
+            integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="
+            crossorigin="anonymous">
+            </script>
+            <script>
+                $('.check_product').on('click',function(){
+                    $.ajax({
+                        method: "POST",
+                        url:'/product/check-product', // 此處不須加"."，或者"http://127.0.0.1:8000"，因此處為相對位置
+                        data:{id:$(this).data('id')}
+                    })
+                    .done(function(response){
+                        if(response){
+                            alert('商品數量充足');
+                        }else{
+                            alert('商品數量不夠');
+                        }
+                    })
+                })
+            </script>
+        // 2.到(web.php)新增路由
+            Route::get('/product/check-product','ProductController@checkProduct');
+        // 3.到(ProductController.php)新增函式
+        use App\Models\Product;
+        public function checkProduct(Request $request){
+            $id=$request->all(); // 先接前端傳過來的參數
+            // dump($id); // 查看$id值是否正確抓取，跟console.log()一樣，只是要到network看，而非console
+            $product = Product::find($id)[0]; // 此處老師的範例沒有[0]，但我觀察資料結構是需要的
+            // print $product[0]; // 觀察用
+            if($product->quantity > 0){
+                return response(true);
+            }else{
+                return response(false);
+            }
+        }
+        // 4.到SQL改資料數量為0
+        // 5.到瀏覽器重新按一次按鈕POST測試
+    // D.HTML 模組化 - partial_view
+        // 1.新增檔案(resources/views/layouts/app.blade.php)
+            <html>
+                <head>
+                    <title>電商網站</title>
+                </head>
+                <body>
+                    <div>
+                        @yield('content')
+                        <!-- @yeald部分有點類似Vue的RouteView -->
+                    </div> 
+                </body>
+            </html>
+        // 2.新增檔案(resources/views/layouts/nav.blade.php)，將會重複的網頁內容引入
+            <div>
+                <a href="/">商品列表</a>
+                <a href="/contact-us">聯絡我們</a>
+            </div>
+        // 3.到(app.blade.php)，新增include將(resources/views/layouts/nav.blade.php)引入(app.blade.php)
+            <html>
+                <head>
+                    <title>電商網站</title>
+                </head>
+                <body>
+                    @include('layouts.nav')
+                    //<!-- 引用resources/views/layouts/nav.blade.php -->
+                    <div>
+                        @yield('content')
+                        //<!-- @yeald部分有點類似Vue的RouteView -->
+                    </div> 
+                </body>
+            </html>
+        // 4.到(index.blade.php)，blade語法部分，筆記要刪除，不然會被當作解析，然後出現syntax errors
+            @extends('layouts.app') 
+            //<!-- @extends表示，將此處所有程式碼放入layouts.app -->
+            @section('content')
+            //<!-- @section是指此處的區塊名稱叫做content -->
+                <h2>商品列表</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <td>標題</td>
+                            <td>內容</td>
+                            <td>價格</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($products as $product) <!-- 此處的$products為WebController.php中的'products'-->
+                        <tr>
+                            <td>{{$product->title}}</td>
+                            <td>{{$product->content}}</td>
+                            <td>{{$product->price}}</td>
+                            <td><input class="check_product" type="button" value="確認商品數量" data-id="{{$product->id}}"></td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                
+                <script
+                src="https://code.jquery.com/jquery-3.7.0.min.js"
+                integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="
+                crossorigin="anonymous">
+                </script>
+                <script>
+                    $('.check_product').on('click',function(){
+                        $.ajax({
+                            method: "POST",
+                            url:'/product/check-product', // 此處不須加"."，或者"http://127.0.0.1:8000"，因此處為相對位置
+                            data:{id:$(this).data('id')}
+                        })
+                        .done(function(response){
+                            if(response){
+                                alert('商品數量充足');
+                            }else{
+                                alert('商品數量不夠');
+                            }
+                        })
+                    })
+                </script>
+            @endsection
+
+// 3.資料庫應用
+    // A.SQL 常見函數介紹
+        // a.SELECT avg(win) FROM sampledatabase.sbl_team_data where team_id=5;
+            // 解析：(avg，平均)搜尋team_id=5的隊伍，平均每季贏了多少場
+
+        // b.SELECT count(*) FROM sampledatabase.sbl_team_data where team_id=5;
+            // 解析：(count，計數)搜尋team_id=5的隊伍，共撈出了幾筆資料
+
+        // c.SELECT max(win) FROM sampledatabase.sbl_team_data where team_id=5;
+            // 解析：(max，最大值)搜尋team_id=5的隊伍，贏最多的那一季贏了幾場
+
+        // d.SELECT min(win) FROM sampledatabase.sbl_team_data where team_id=5;
+            // 解析：(min，最小值)搜尋team_id=5的隊伍，贏最少的那一季贏了幾場
+
+        // e.SELECT sum(win) FROM sampledatabase.sbl_team_data where team_id=5;
+            // 解析：(sum，總和)搜尋team_id=5的隊伍，總共贏了幾場
+
+        // f.SELECT concat(win,lost) FROM sampledatabase.sbl_team_data where team_id=5;
+            // 解析：(concat，合併欄位)搜尋team_id=5的隊伍，贏與書的場次總共多少
+        
+        // g.SELECT concat(win,lost) FROM sampledatabase.sbl_team_data where team_id=5 and concat(win,lost) like '%141%';
+            // 解析：(like，搜尋)搜尋team_id=5的隊伍，且贏與書總共的場次開頭要是141
+
+        // h.SELECT distinct(win) FROM sampledatabase.sbl_team_data where team_id=5;
+            // 解析：(distinct，只顯示唯一值)搜尋team_id=5的隊伍，顯示win欄位的唯一值
+    
+    // B.SQL 特殊參數 - order, limit..
+        // a.SELECT concat(win,lost) as total FROM sampledatabase.sbl_team_data where team_id=5;
+            // 解析：(as，合併欄位並命名)搜尋team_id=5的隊伍，贏與書的場次總共多少，並命名新的欄位名稱為total
+
+        // b.SELECT * FROM sampledatabase.sbl_team_data where team_id=5 order by season asc;
+            // 解析：(order by ... asc，排序)搜尋team_id=5的隊伍，並依照season正排序(由小到大，由舊到新)
+
+        // c.SELECT * FROM sampledatabase.sbl_team_data where team_id=5 order by season desc;
+            // 解析：(order by ... desc，排序)搜尋team_id=5的隊伍，並依照season倒排序(由大到小，由新到舊)
+
+        // d.SELECT * FROM sampledatabase.sbl_team_data where team_id=5 order by season asc limit 10;
+            // 解析：(limit 10，前10筆資料)搜尋team_id=5的隊伍，並依照season正排序，並顯示前十筆
+
+        // e.SELECT * FROM sampledatabase.sbl_team_data order by id asc limit 10 offset 0;
+            // 解析：(offset 0，從第0筆開始找)搜尋team_id=5的隊伍，並依照id正排序，並顯示以第0筆開始的前十筆
+            // 用意：如若資料太龐大，則可以此方式來減少前端的負荷，變成一頁10筆資料，一次一頁的給前端
+
+        // f.SELECT team_id,sum(win) FROM sampledatabase.sbl_team_data group by (team_id);
+            // 解析：(team_id,sum(win) ... group by (team_id)，以值為組的加總)將資料以隊做為加總顯示，每隊的勝場
+
+        // g.SELECT team_id,sum(win) FROM sampledatabase.sbl_team_data group by (team_id) having (sum(win)>300);
+            // 解析：(having ,尋找已經算過的欄位，where ,尋找原始欄位)，找出哪隊的勝利次數大於300次
+
+    // C.SQL 進階知識 - 子查詢和 Transaction
+        // a.SELECT * FROM sampledatabase.sbl_team_data where team_id in(SELECT team_id FROM sampledatabase.sbl_team_data where win > 23);
+            // 解析：(子查詢，查詢之中還有另一個查詢)哪些隊的勝場有一季大於23場的隊伍，並將其所有資料回傳。
+            // 原理：以sampledatabase來說，SELECT team_id FROM sampledatabase.sbl_team_data where win > 23;會回傳team_id:4和6，所以query就會
+            //      變成SELECT * FROM sampledatabase.sbl_team_data where team_id in(4,6);搜尋team_id=4和6的隊伍。
+            
+        // b.SELECT * FROM sampledatabase.sbl_team_data where team_id = 7 and exists
+        //   (SELECT * FROM sampledatabase.sbl_teams where sbl_teams.id = sbl_team_data.team_id);
+            // 解析：先產生sbl_teams.id = sbl_team_data.team_id的關聯，在查詢team_id = 7的資料，如若
+            //      sbl_teams.id 與 sbl_team_data.team_id 沒有兩個都有7可以關聯的話，那麼team_id = 7
+            //      的條件就不成立，也不會產生搜尋。
+        
+        // c.SELECT * FROM sampledatabase.sbl_team_data where team_id = 7 and exists
+        //    (SELECT * FROM sampledatabase.sbl_teams where sbl_teams.id = sbl_team_data.team_id and sbl_teams.total_win >300);
+            // 解析：子條件搜尋sbl_teams.total_win >300，且sbl_teams.id = sbl_team_data.team_id，在回傳結果到exists，如果沒有存在
+            //       sbl_teams.id = sbl_team_data.team_id=7的資料且sbl_teams.total_win >300，就不回傳。
+
+    // D.子查詢和 Transaction(交易，批次修改資料的最優解)
+        // a.概念：使用Transaction(交易)，程式會先試跑看看將每個資料都依照使用者設定的條件做執行，如果可以就看使用者要不要
+        //         Commit(確定執行)，如果發生錯誤就會產生Rollback(回逤所有執行的結果)，程式就會回逤。
+            
+// 4.Laravel
+    // A.ORM 操作進階的 SQL 應用
+        // a.後臺管理員(admin)
+            // 1.到(resources/views/admin/orders/index.blade.php)，除了orders以外，也可以設定product等等的功能
+                <h2>後台-訂單列表</h2>
+                <!-- 製作一個table讓訂單資料顯示出來 -->
+                <table>
+                    <thead>
+                        <tr>
+                            <td>購買時間</td>
+                            <td>購買者</td>
+                            <td>商品清單</td>
+                            <td>訂單總額</td>
+                            <td>是否運送</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!--此處任何$order底下的東西，都可以參考Model/Order是否設有與當下的東西有關聯，例：user和orderItems-->
+                        <!-- 防呆，isset函式可以協助偵測某變數是否存在值 -->
+                        <!-- isset($order->$orderItems) ? $order->$orderItems->sum('price') : 0 ， $order->$orderItems若有值則加總price欄位的值-->
+                        @foreach ($orders as $order)
+                            <tr>
+                                <td>{{ $order->created_at }}</td>
+                                <td>{{ $order->user->name }}</td> 
+                                <td>
+                                    @foreach ($order->orderItems as $orderItem)
+                                        {{ $orderItem->product->title }} &nbsp;
+                                    @endforeach
+                                </td>
+                                <td>
+                                    {{ isset($order->orderItems) ? $order->orderItems->sum('price') : 0 }}
+                                </td>
+                                <td>{{ $order->is_shipped }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            // 2.終端輸入"php artisan make:controller OrderController"
+            // 3.將剛剛建立的Controller拉到Http/Controller/Admin資料夾中
+                // 原因：因此Controller對應的是admin底下的index，因此此Controller也要有Admin
+            // 4.進到(Http/Controller/Admin/OrderController.php)
+                namespace App\Http\Controllers\Admin; // 此處為將namespace更改成這個
+                use App\Http\Controllers\Controller; // 因namespace被更改，導致Controller找不到，所以要多加此行讓Controller被找到。
+                use App\Models\Order; // 因需要Order的模型與資料，因此需引入Order
+                class OrderController extends Controller
+                {
+                    public function index()
+                    {  
+                        // 此處的orderBy，可參考：SQL 特殊參數 - order
+                        // 因此處在get以前，都只是單純的SQL函式，處理完之後沒有下get，它會不知道要把資料送過來
+                        $orders = Order::orderBy('created_at','desc')->get();
+
+                        return view('admin.order.index',['orders'=>$orders]);
+                    }
+                }
+            // 5.到(web.php)
+                Route::resource('admin/orders','Admin\OrderController');
+            // 6.終端輸入"php artisan serve"
+            // 7.連結進去，並且在後面新增"/admin/orders"
+            // 8.到(admin/index.blade.php)
+                <h2>後台-訂單列表</h2>
+                <span>訂單總數： {{ $orderCount }}</span>
+                <!-- 製作一個table讓訂單資料顯示出來 -->
+                <table>
+                    <thead>
+                        <tr>
+                            <td>購買時間</td>
+                            <td>購買者</td>
+                            <td>商品清單</td>
+                            <td>訂單總額</td>
+                            <td>是否運送</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!--此處任何$order底下的東西，都可以參考Model/Order是否設有與當下的東西有關聯，例：user和orderItems-->
+                        <!-- 防呆，isset函式可以協助偵測某變數是否存在值 -->
+                        <!-- isset($order->$orderItems) ? $order->$orderItems->sum('price') : 0 ， $order->$orderItems若有值則加總price欄位的值-->
+                        @foreach ($orders as $order)
+                            <tr>
+                                <td>{{ $order->created_at }}</td>
+                                <td>{{ $order->user->name }}</td> 
+                                <td>
+                                    @foreach ($order->orderItems as $orderItem)
+                                        {{ $orderItem->product->title }} &nbsp;
+                                    @endforeach
+                                </td>
+                                <td>
+                                    {{ 
+                                        isset($order->orderItems) ? $order->orderItems->sum('price') : 0
+                                    }}
+                                </td>
+                                <td>{{ $order->is_shipped }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                
+                <!-- 新增一個分頁欄(可點選下一頁的功能) -->
+                <div>
+                    <!--$orderPages為此次訂單共分為幾個頁面  -->
+                    <!-- a的部分在href使用"?"使得後端可接收資料 -->
+                    @for ($i = 1; $i <= $orderPages; $i++)
+                        <a href="/admin/orders?page={{ $i }}">第 {{$i}} 頁</a> &nbsp;
+                    @endfor
+                </div>
+            // 9.到(Adim/OrderController)
+                class OrderController extends Controller
+                {
+                    public function index(Request $request)
+                    {  
+                        $orderCount = Order::count(); // 執行SQL裡面的count函數，如果要sum就改成sum('欄位名稱')
+                        $dataPerpage = 2; // 設定成一頁兩筆資料
+                        $orderPages = ceil($orderCount / $dataPerpage); 
+                        // 會有幾頁的資料，會使用ceil函式(無條件進位)是因為假如最後一頁剩一筆資料或者沒填滿，還是必須顯示出來，會多一頁。
+                        
+                        $currentPage = isset($request->all()['page']) ? $request->all()['page'] : 1 ; // 當前頁數為幾，如果沒有回傳頁數則為1
+                        // 此處的orderBy，可參考：SQL 特殊參數 - order
+                        // 因此處在get以前，都只是單純的SQL函式，處理完之後沒有下get，它會不知道要把資料送過來
+                        $orders = Order::orderBy('created_at','desc')
+                                        ->offset($dataPerpage * ($currentPage - 1)) // 假如第1頁，就從第1筆資料(引數為[0])開始搜尋，第2頁就是2*(2-1)，從第三筆資料(引數為[2])開始搜尋
+                                        ->limit($dataPerpage) // 限制每頁兩個資料
+                                        ->get();
+                
+                        return view('admin.orders.index',['orders'=>$orders,
+                                                        'orderCount'=>$orderCount,
+                                                        'orderPages'=>$orderPages,
+                                                        ]);
+                    }
+                }
+            // 10.到http://127.0.0.1:8000/admin/orders查看是否輸出正確
+
+    // B.利用 with 與 Transaction，製作效能與資料一致性兼具的功能
+        // a.利用SQL來優化效能
+            // 1.到(Adim/OrderController.php)新增whereHas('orderItems')，用於篩選訂單中有商品的訂單，以達到看到有效訂單的效能優化
+                class OrderController extends Controller
+                {
+                    public function index(Request $request)
+                    {  
+                        $orderCount = Order::whereHas('orderItems')->count(); // 執行SQL裡面的count函數，如果要sum就改成sum('欄位名稱')
+                        $dataPerpage = 2; // 設定成一頁兩筆資料
+                        $orderPages = ceil($orderCount / $dataPerpage); 
+                        // 會有幾頁的資料，會使用ceil函式(無條件進位)是因為假如最後一頁剩一筆資料或者沒填滿，還是必須顯示出來，會多一頁。
+                        
+                        $currentPage = isset($request->all()['page']) ? $request->all()['page'] : 1 ; // 當前頁數為幾，如果沒有回傳頁數則為1
+                        // 此處的orderBy，可參考：SQL 特殊參數 - order
+                        // 因此處在get以前，都只是單純的SQL函式，處理完之後沒有下get，它會不知道要把資料送過來
+                        $orders = Order::orderBy('created_at','desc')
+                                        ->offset($dataPerpage * ($currentPage - 1)) // 假如第1頁，就從第1筆資料(引數為[0])開始搜尋，第2頁就是2*(2-1)，從第三筆資料(引數為[2])開始搜尋
+                                        ->limit($dataPerpage) // 限制每頁兩個資料
+                                        ->whereHas('orderItems') // 去找是否有orderItem這個關聯Model，此為Model/Order.php底下的orderItems，只顯示有orderItems的資料
+                                        // ->dd(); //可查看到dd為止的所有SQL語法
+                                        ->get();
+                
+                        return view('admin.orders.index',['orders'=>$orders,
+                                                        'orderCount'=>$orderCount,
+                                                        'orderPages'=>$orderPages,
+                                                        ]);
+                    }
+                }
+
+        // b.使用Laravel套件的DB來追蹤SQL語法，並使用with語法來減少SQL語法的負荷，以優化效能
+            // 1.到(admin/index.blade.php)使用DB::enableQueryLog()與dd(DB::getQueryLog()來追蹤SQL的語法與時間
+                // 到瀏覽器的頁面上，尋找例如：select * from `users` where `users`.`id` = ? limit 1"，其中有users，
+                // 那麼可以使用User.php的關聯，來減少SQL語法的次數，因此到第二步(2.)
+                <!-- 如何監測以下的程式碼 -->
+                @php
+                    use Illuminate\Support\Facades\DB;
+                @endphp
+                <!-- 啟動DB，並做出SQL語法的追蹤(起始點) -->
+                {{DB::enableQueryLog()}}
+
+
+                <h2>後台-訂單列表</h2>
+                <span>訂單總數： {{ $orderCount }}</span>
+                <!-- 製作一個table讓訂單資料顯示出來 -->
+                <table>
+                    <thead>
+                        <tr>
+                            <td>購買時間</td>
+                            <td>購買者</td>
+                            <td>商品清單</td>
+                            <td>訂單總額</td>
+                            <td>是否運送</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!--此處任何$order底下的東西，都可以參考Model/Order是否設有與當下的東西有關聯，例：user和orderItems-->
+                        <!-- 防呆，isset函式可以協助偵測某變數是否存在值 -->
+                        <!-- isset($order->$orderItems) ? $order->$orderItems->sum('price') : 0 ， $order->$orderItems若有值則加總price欄位的值-->
+                        @foreach ($orders as $order)
+                            <tr>
+                                <td>{{ $order->created_at }}</td>
+                                <td>{{ $order->user->name }}</td> 
+                                <td>
+                                    @foreach ($order->orderItems as $orderItem)
+                                        {{ $orderItem->product->title }} &nbsp;
+                                    @endforeach
+                                </td>
+                                <td>
+                                    {{ 
+                                        isset($order->orderItems) ? $order->orderItems->sum('price') : 0
+                                    }}
+                                </td>
+                                <td>{{ $order->is_shipped }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+
+                <!-- 新增一個分頁欄(可點選下一頁的功能) -->
+                <div>
+                    <!--$orderPages為此次訂單共分為幾個頁面  -->
+                    <!-- a的部分在href使用"?"使得後端可接收資料 -->
+                    @for ($i = 1; $i <= $orderPages; $i++)
+                        <a href="/admin/orders?page={{ $i }}">第 {{$i}} 頁</a> &nbsp;
+                    @endfor
+                </div>
+                <!-- 執行完以上程式碼後，取出SQL語法的追蹤(終結點) -->
+                {{dd(DB::getQueryLog())}}
+
+            // 2.到(OrderController.php)新增with語法，來減少前端下SQL的語法次數，在"Order::with"處
+                    public function index(Request $request)
+                    {  
+                        $orderCount = Order::whereHas('orderItems')->count(); // 執行SQL裡面的count函數，如果要sum就改成sum('欄位名稱')
+                        $dataPerpage = 2; // 設定成一頁兩筆資料
+                        $orderPages = ceil($orderCount / $dataPerpage); 
+                        // 會有幾頁的資料，會使用ceil函式(無條件進位)是因為假如最後一頁剩一筆資料或者沒填滿，還是必須顯示出來，會多一頁。
+                        
+                        $currentPage = isset($request->all()['page']) ? $request->all()['page'] : 1 ; // 當前頁數為幾，如果沒有回傳頁數則為1
+                        // 此處的orderBy，可參考：SQL 特殊參數 - order
+                        // 因此處在get以前，都只是單純的SQL函式，處理完之後沒有下get，它會不知道要把資料送過來
+                        $orders = Order::with(['user','orderItems.product'])->orderBy('created_at','desc') // 使用with，在撈資料前，先撈出關聯的Model資料，可使前端執行時SQL語法減少
+                                            // 此處的orderItems.product可以將orderItem與product的關聯都拉進來
+                                        ->offset($dataPerpage * ($currentPage - 1)) // 假如第1頁，就從第1筆資料(引數為[0])開始搜尋，第2頁就是2*(2-1)，從第三筆資料(引數為[2])開始搜尋
+                                        ->limit($dataPerpage) // 限制每頁兩個資料
+                                        ->whereHas('orderItems') // 去找是否有orderItem這個關聯Model，此為Model/Order.php底下的orderItems，只顯示有orderItems的資料
+                                        // ->dd(); //可查看到dd為止的所有SQL語法
+                                        ->get();
+                
+                        return view('admin.orders.index',['orders'=>$orders,
+                                                        'orderCount'=>$orderCount,
+                                                        'orderPages'=>$orderPages,
+                                                        ]);
+                    }
+            // 3.回到瀏覽器看語法是否有減少(或者直接為空)，且載入速度是否有變快
+            // 4.測試完後，記得到(admin/index.blade.php)將測試工具移除，以下為測試工具的程式碼
+                <!-- 如何監測以下的程式碼 -->
+                @php
+                    use Illuminate\Support\Facades\DB;
+                @endphp
+                <!-- 啟動DB，並做出SQL語法的追蹤(起始點) -->
+                {{DB::enableQueryLog()}}
+
+                [...程式內容...]
+
+                <!-- 執行完以上程式碼後，取出SQL語法的追蹤(終結點) -->
+                {{dd(DB::getQueryLog())}}
+
+        // c.如何實作Transaction，將訂單發生錯誤時，逆轉訂單(回到訂單還沒被產生的時候)，
+                // Laravel官方文件參考網址：https://laravel.com/docs/10.x/database#database-transactions
+            // 1.到(Cart.php)實作Transaction
+                // 1-1，將checkout內的程式碼全包在$result的transaction中
+                    use Illuminate\Support\Facades\DB;
+                    // 將checkout內的程式碼全包在$result的transaction中，並將$result回傳至checkout(return $result;)
+                    public function checkout(){
+                        $result = DB::transaction(function () {
+                            //檢查要在創造前
+                            foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                                $product = $cartItem->product;
+                                if(!$product->checkQuantity($cartItem->quantity)){
+                                    return $product->title.'數量不足'; //執行到此會直接結束foreach，並回傳此
+                                }
+                            }
+                            $order = $this->order()->create([
+                                'user_id'=> $this->user_id, // 直接指向正被使用的購物的user_id
+                            ]);
+                            if($this->user->level ==2){
+                                $this->rate = 0.8; //如果是vip(使用者等級2)，就打八折
+                            }
+                            foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                                $order->orderItems()->create([
+                                    'product_id'=>$cartItem->product_id,
+                                    'price' => $cartItem->product->price *$this->rate
+                                ]);
+                                $cartItem->product->update(['quantity'=>$cartItem->product->quantity - $cartItem->quantity]);
+                                // 購買後將產品減少
+                            }
+                
+                            $this->update(['checkouted'=>true]);
+                            $order->orderItems;
+                            return $order; // 回傳訂單長甚麼樣子
+                        });
+                        return $result;
+                    }
+                // 1-2，將checkout內的程式碼全包在try裡面
+                    use Illuminate\Support\Facades\DB;
+                    use PhpParser\Node\Stmt\TryCatch;
+
+                    // 將checkout內的程式碼全包在$result的transaction中，並將$result回傳至checkout(return $result;)
+                    public function checkout(){
+                        DB::beginTransaction();
+                        try{
+                            //檢查要在創造前
+                            foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                                $product = $cartItem->product;
+                                if(!$product->checkQuantity($cartItem->quantity)){
+                                    return $product->title.'數量不足'; //執行到此會直接結束foreach，並回傳此
+                                }
+                            }
+                            $order = $this->order()->create([
+                                'user_id'=> $this->user_id, // 直接指向正被使用的購物的user_id
+                            ]);
+                            if($this->user->level ==2){
+                                $this->rate = 0.8; //如果是vip(使用者等級2)，就打八折
+                            }
+                            foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
+                                $order->orderItems()->create([
+                                    'product_id'=>$cartItem->product_id,
+                                    'price' => $cartItem->product->price *$this->rate
+                                ]);
+                                $cartItem->product->update(['quantity'=>$cartItem->product->quantity - $cartItem->quantity]);
+                                // 購買後將產品減少
+                            }
+                
+                            $this->update(['checkouted'=>true]);
+                            $order->orderItems;
+                            DB::commit();
+                            return $order; // 回傳訂單長甚麼樣子
+                        } catch(\Throwable $th){
+                            DB::rollBack();
+                            return 'somethings error';
+                        }
+                    }
+
+            // 2.終端輸入"php artisan tinker"，進入程式碼測試環境
+            // 3.終端輸入"Cart::first()->checkout()"，執行剛剛包裹的checkout函式，並製造訂單
+            // 4.到(Model/Cart.php)，故意新增一個錯誤
+                use Exception;
+                throw new Exception('123123'); // 引發錯誤'123123'
+            // 5.終端輸入"Cart::first()->checkout()"，執行剛剛包裹的checkout函式，確認觸發錯誤
+            // 6.到資料表orders找看看有沒有比剛剛還大的id
+            // 7.將剛剛4.新增的錯誤刪掉後，使用3.的指令，並回到6.找看看有沒有新的訂單，如果有就完成了
+            // 切記：因創建訂單時發生錯誤，會導致後面的新訂單id會跳號
+
+// 5.Notification
+    // A.建立推播(Notification)訊息相關 API 與前端顯示(API開發 - 訂單已送出OrderDelivey)
+            // Laravel官方文件參考：https://laravel.com/docs/10.x/notifications#formatting-database-notifications
+        // 1.終端輸入"php artisan make:notification OrderDelivery"，建立一個推播
+        // 2.到(app/Notifications/OrderDelivery.php)
+            // (Notification的存放位置)
+                public function via(object $notifiable): array
+                {
+                    return ['database']; // 預設是mail，但我們要使用的是儲存到資料庫在推播，而不是mail
+                }
+            // (Notification的資料)
+                public function toArray(object $notifiable): array
+                {
+                    return [
+                        // toArray，Notification中儲存的資料，就是toArray
+                        'msg'=>'訂單已送達'
+                    ];
+                }
+            // (產生Notification的資料表)
+                // https://laravel.com/docs/10.x/notifications#database-notifications
+        // 3.終端輸入"php artisan notifications:table"，會產生Notifiction必備欄位的migration檔案，檔案位置在migrations
+        // 4.終端輸入"php artisan migrate"
+        // 5.到(app/Http/Controller/Admin/OrderController.php)
+            use App\Notifications\OrderDelivery;
+            public function delivery($id){ // 收到前端回傳的$id
+                $order = Order::find($id); 
+                if($order->is_shipped){ // 如果貨物已被送出
+                    return response(['result'=>false]);
+                }else{
+                    $order->update(['is_shipped'=>true]); // 把貨物被送出的狀態改成true
+                    $order->user->notify(new OrderDelivery); 
+                    // 在(Model/User.php)有use Notifiable，所以可以直接指令進去就行，此檔案按下儲存後會自動新增 "use App\Notifications\OrderDelivery;"
+                    return response(['result'=>true]);
+                }
+            }
+        // 6.到(web.php)設定路由
+            Route::post('admin/orders/{id}/delivery','Admin\OrderController@delivery');
+        
+        // 7.終端輸入"php artisan serve"
+        // 8.Postman測試POST
+            // 位置：http://127.0.0.1:8000/admin/orders/4/delivery
+            // 位置中的/4/只是因為此次測試資料為資料表orders的id=4，如果不同則要換
+        // 9.到資料表Notification找看看是否有新資料，其中notification_id的數字是user_id的數字
+        // 10.將Notification顯示到前端，到(WebController.php)
+            use App\Models\User;
+            public function index(){
+                $products = Product::all();
+                $user = User::find(2);
+                $notifications = $user->notifications ?? []; // 此關聯是在Model/User中的use Notifiable中建立的，因此可直接使用
+                // $user->notifications ?? [] 的意思是指，如果$user->notifications存在就使用$user->notifications，如果不存在就[]
+                return view('web.index',['products'=> $products,'notifications'=>$notifications]);
+            }
+        // 11.到(resources/views/layouts/app.blade.php)將bootstrap引入
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+            <script
+                src="https://code.jquery.com/jquery-3.7.0.min.js"
+                integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="
+                crossorigin="anonymous">
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
+        // 12.在Bootstrap搜尋Modal，找到Live demo，並複製到layouts/nav.blade.php
+            <div>
+                <a href="/">商品列表</a>
+                <a href="/contact-us">聯絡我們</a>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#notifications">
+                    通知
+                </button>
+            </div>
+            @include('layouts.modal')
+        // 13.到(layouts/modal.blade.php)
+            <div class="modal fade" id="notifications" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">通知</h1>
+                    <!-- 以下button為關閉的按鈕 -->
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul>
+                        @foreach($notifications as $notification)
+                            <li>{{ $notification->data['msg'] }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+            </div>
+            </div>
+        // 14.到瀏覽器去按"通知"的按鈕，有跳出訊息來表示成功
+        // 15.修除前BUG(按下contactUs，會出現錯誤)，到(WebController.php)
+        class WebController extends Controller
+        {
+            public $notifications = [];
+            public function __construct()
+            {
+                $user = User::find(2);
+                $this->notifications = $user->notifications ?? []; // 此關聯是在Model/User中的use Notifiable中建立的，因此可直接使用
+                // $user->notifications ?? [] 的意思是指，如果$user->notifications存在就使用$user->notifications，如果不存在就[]
+            }
+            public function index(){
+                $products = Product::all();
+                
+                return view('web.index',['products'=> $products,'notifications'=>$this->notifications]);
+            }
+            public function contactUs(){
+                return view('web.contact_us',['notifications'=>$this->notifications]);
+            }
+        }
+
+    // B.推播功能的已讀系統
+        // 16.注意資料表"notifications"，有一個欄位"read_at"，此欄位是專門給已讀用的
+        // 17.到(WebController.php)，新增函式，並使用markAsRead函式來紀錄read_at(已讀的時間)
+            use Illuminate\Notifications\DatabaseNotification;
+            public function readNotification(Request $request){
+                $id = $request->all()['id'];
+                DatabaseNotification::find($id)->markAsRead(); // 會幫忙押上資料表notifications中的欄位read_at的值
+        
+                return response(['result'=>true]);
+            }
+        // 18.Postman測試POST
+            // 位置：http://127.0.0.1:8000/admin/orders/{{ $id }}/delivery
+        // 19.回到瀏覽器並按下"通知"按鈕，測試是否顯示已通知
+        // 20.到(modal.blade.php)新增前端的已讀
+            <div class="modal fade" id="notifications" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">通知</h1>
+                    <!-- 以下button為關閉的按鈕 -->
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                    <!-- li的data-id="{{ $notification->id }}"是只notification的id(UUID) -->
+                    <ul>
+                        @foreach($notifications as $notification)
+                            <li class="read_notification" data-id="{{ $notification->id }}">{{ $notification->data['msg'] }}
+                                <span class="read">
+                                <!-- 此處為，如果read_at有值就顯示"已讀" -->
+                                @if($notification->read_at)
+                                    (已讀)
+                                @endif
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                    </div>
+                </div>
+                </div>
+            </div>
+            <script> // 此處有個重點是.on裡面的function不可以使用箭頭函式
+                $('.read_notification').on('click',function(){
+                    let $this = $(this);
+                    // 此處的$(this)，就是代表class=read_notification的整個元素，包含內部小元素
+                    $.ajax({
+                    method:'POST',
+                    url:'read-notification',
+                    data:{id:$this.data('id')} // 此處為使用jquery的方式取得let $this宣告的$this的id，也就是上面li中的data-id="{{ $notification->id }}"
+                    })
+                    .done((msg)=>{
+                    if(msg.result){
+                        $this.find('.read').text('(已讀)'); // 尋找li class="read_notification"中是否有子元素是class="read"
+                    }
+                    })
+                })
+                </script>
+
+        // 21.到(web.php)新增路由
+            Route::post('/read-notification','WebController@readNotification');
+        // 22.到瀏覽器去測試
+            // 點選"通知"按鈕後，按下"訂單已送達"，後方會新增"(已讀)"
+            // 並回到資料表notifications，查看read_at是否有正確的出現時間
+// 6.Queue工作排程化
+    // A.佇列概念與實作
+    //      概念：常用於跑很久的程式
+    //      Laravel官方文件：https://laravel.com/docs/10.x/queues#creating-jobs
+        // 1.終端輸入"php artisan make:job UpdateProductPrice"
+        // 2.到(app/Jobs/UpdateProductPrice.php)，此檔案的工作就是要把ProductPrice做一個Update的工作
+            protected $product;
+            public function __construct($product)
+            {
+                $this->product = $product;
+            }
+        
+            /**
+             * Execute the job.
+             */
+            public function handle(): void
+            {
+                //這個UpdateProductPrice執行時，就要來執行這裡的程式碼
+                sleep(5); // 模擬大程式，所以增加此五秒
+                $this->product->update(['price'=>$this->product->price * random_int(2,5)]); // 更新價格
+                // random_int(2,5)，隨機產生2~5的int
+            }
+
+        // *.那麼這些工作(UpdataeProductPrice.php會執行的資料)要存在哪裡，通常分為兩種：
+                // 1.存在資料庫內，類似推播(Notification)的A-第2.與第3.
+                // 2.使用Redis，將資料存在電腦本機的快取等等的方式，比較輕量
+                // 而此處示範是第1.種方式，因比較視覺化且好確認
+                // Laravel官方文件：https://laravel.com/docs/10.x/queues#driver-prerequisites
+
+        // 3.終端輸入"php artisan queue:table"
+
+        // 4.終端輸入"php artisan migrate"
+
+        // 5.到(.env)確認Queue的模式要怎麼走
+            // QUEUE_CONNECTION=sync 改成=> QUEUE_CONNECTION=database
+            // 以此來告訴Laravel要跑QUEUE的話，會走資料庫的方式去做確認
+
+        // 6.終端輸入"php artisan make:controller ToolController"，製造一個API控制端點
+
+        // 7.將(ToolController.php)放到Admin資料夾中
+            namespace App\Http\Controllers\Admin;
+            use App\Http\Controllers\Controller;
+            use App\Models\Product;
+            use App\Jobs\UpdateProductPrice;
+            public function updateproductprice()
+            {
+                $products = Product::all();
+                foreach($products as $product){
+                    UpdateProductPrice::dispatch($product) //dispatch的意思是，建立一個Job進去資料表Jobs，當運行時變會知道是甚麼工作要被執行
+                }
+            }
+
+        // 8.到(web.php)建立路由
+            Route::post('admin/tools/update-product-price','Admin\ToolController@updateproductprice');
+
+        // 9.終端輸入"php artisan serve"
+
+        // 10.Postman測試POST
+            // 位置：http://127.0.0.1:8000/admin/tools/update-product-price
+
+        // 11.到資料表Jobs檢查是否有執行成功的資料
+
+        // *.概念
+            // Queue最小的單位是job，而其中還有worker(工作小僕人)會去幫忙把資料取出
+
+        // 12.終端輸入"php artisan queue:work database --queue=default"，請執行資料表jobs中欄位queue等於default的job
+
+        // 13.執行結束後，可到資料表products查看updated_at的時間是否有被更新
+
+        // 14.關於資料表jobs的欄位queue怎麼設定，在dispatch後面增加onQueue('tool')
+            public function updateproductprice()
+            {
+                $products = Product::all();
+                foreach($products as $product){
+                    UpdateProductPrice::dispatch($product)->onQueue('tool'); //dispatch的意思是，建立一個Job進去資料表Jobs，當運行時變會知道是甚麼工作要被執行
+                }
+            }
+
+        // 15.終端輸入"php artisan serve"
+        // 16.Postman測試POST
+            // 位置：http://127.0.0.1:8000/admin/tools/update-product-price
+
+        // 17.到資料表Jobs檢查是否有執行成功的資料，並確認queue欄位的值是tool
+        // 18.終端輸入"php artisan queue:work database --queue=tool"，請執行資料表jobs中欄位queue等於tool的job
+            // 若執行失敗，則資料會被輸出到資料表failed_jobs
+
+// 7.Redis
+    // 概念：Redis其實只支援Linux與MAC，而Windows是Microsoft(微軟)製作出來的，因此需要注意版本不同(不是最新的，版本3.2)與安全性的問題
+    // A.安裝Redis環境
+        // 1.Google搜尋"redis microsoft github"，點選"Microsoft Archive - GitHub"
+        // 2.找到Repositories的搜尋欄位，並輸入"Redis"，並點擊C語言的
+            // C語言的連結：https://github.com/microsoftarchive/redis
+        // 3.往下找到"release page."並點擊
+        // 4.找到"3.2.100" -> "Assets" -> 下載"Redis-x64-3.2.100.msi"
+        // 5.點擊剛剛下載好的"Redis-x64-3.2.100.msi"，流程一切正常，
+            // 切記，到了"Destination Folder"時，要將"Add the Redis installation folder to the PATH environment variable"
+            // 有勾選"Add the Redis installation folder to the PATH environment variable"，Powershell才會執行Redis
+        // 6.Windows搜尋"服務"找看看有沒有Redis，有就是安裝成功
+        // 7.到終端與其互動看看，終端輸入"redis-cli"，只要有回"127.0.0.1:6379>"就是成功進到Redis中，有就是安裝成功
+
+    // B.利用 Redis 優化系統效能
+        // 概念：Redis並非專屬於Laravel的，它是一種存在於記憶體的資料庫(輕量化資料庫)，與SQL那些最大的差別就是沒有欄位的關聯，
+        //      Redis最主要是在優化網站人數多時，所導致不斷得在下SQL語法，因此將產品資料存到Redis中，來增加重複訪問的效率。
+        // Laravel官方文件：https://laravel.com/docs/10.x/redis
+        //      文件上的"composer require predis/predis"中的predis是安裝比較方便，但phpredis效能上是比predis還來得強的
+        //      此處範例為安裝官方文件中的predis，先學會如何操作redis
+
+        // 1.終端輸入"composer require predis/predis"，安裝Redis到專案中
+
+        // 2.到(config/database.php)，改
+            // 搜尋''redis' => ['其中的欄位如以下兩個欄位改完才會正確的使專案使用predis：
+                // 'client' =>，'predis'並將其改成'predis變成以下
+                    'client' => env('REDIS_CLIENT', 'predis')
+                // 'cluster' =>，將redis改成predis，變成以下
+                    'cluster' => env('REDIS_CLUSTER', 'predis'),
+        
+        // 3.Windows版，需至(config/app.php)，搜尋"'aliases' => Facade::"，並將其改成以下
+            'aliases' => Facade::defaultAliases()->merge([
+                // 'Example' => App\Facades\Example::class,
+                'Redis' => Illuminate\Support\Facades\Redis::class,
+            ])->toArray(),
+
+        // 4.終端輸入"php artisan tinker"
+
+        // 5.終端輸入"Redis::get('name')"，取得name值，沒有設定過的情況，會返回null
+
+        // 6.終端輸入"Redis::set('name','jhon')"，設定一個name=jhon
+
+        // 7.終端輸入"Redis::get('name')"，取得name值，會回傳'jhon'
+            // 即使關閉"php artisan tinker"後，再重新開啟，終端輸入"Redis::get('name')"，
+            // 也還是會回傳'jhon'，除非Redis被重新開啟or電腦關機
+
+        // 8.到(ToolController.php)
+            use Illuminate\Support\Facades\Redis;
+            public function createProductRedis()
+            {
+                Redis::set('products',json_encode(Product::all())); // 將Product的所有資料放入Redis的products中儲存
+                // 因直接將資料塞進去的話，會是以php class的形式塞入，因此需使用"json_encode()"
+            }
+
+        // 9.到(ProductController.php)，設置成可以對Redis的json格式解碼
+            use Illuminate\Support\Facades\Redis;
+            public function index(Request $request)
+            {
+                // $data = DB::table('product')->get(); // 此為用DB取資料
+                $data = json_decode(Redis::get('products')); // 此為用Redis取資料
+                // 因存進Redis的資料是json格式，因此需要使用json檔案來解碼
+                return response($data); // 並回傳到網頁上
+            }
+
+        // 10.到(web.php)建立路由
+            Route::post('admin/tools/creat-product-redis','Admin\ToolController@createProductRedis');
+
+        // 11.終端輸入"php artisan serve"
+
+        // 12.Postman測試POST
+            // 位置：http://127.0.0.1:8000/admin/tools/creat-product-redis
+
+        // 13.終端輸入"php artisan tinker"，進入tinker環境測試Redis
+
+        // 14.終端輸入"Redis::get('products')"，測試Redis是否真的有將資料存入products
+
+        // 15.終端輸入"php artisan serve"
+
+        // 16.在到瀏覽器輸入網址
+            // 網址：http://127.0.0.1:8000/product
+
+        // 17.如何驗證是否真的效能有提升，
+            // a.到(ProductController.php)
+                public function index(Request $request)
+                {
+                    dump(now()); //初始時間
+                    for($i=0;$i<10000;$i++){ // 使Redis提取10000次
+                        json_decode(Redis::get('products'));
+                    }
+                    dump(now()); // 結束時間
+                    $data = json_decode(Redis::get('products'));
+                    return response($data);
+                }
+            // b.在到瀏覽器輸入網址
+                // 網址：http://127.0.0.1:8000/product
+            // c.找到date欄位查看時間差了多少，並且記住
+            // d.到(ProductController.php)
+                public function index(Request $request)
+                {
+                    dump(now()); //初始時間
+                    for($i=0;$i<10000;$i++){ // 使Redis提取10000次
+                        DB::table('product')->get();
+                    }
+                    dump(now()); // 結束時間
+                    $data = DB::table('product')->get();
+                    return response($data);
+                }
+            // e.在到瀏覽器輸入網址
+                // 網址：http://127.0.0.1:8000/product
+            // f.找到date欄位查看時間差了多少，並且記住
+            // g.比較步驟a.與步驟d.兩者時間相差多少
+                // *.假設資料量越大，差距會以等比級數增長
+
+// 8.【Observer】學會多對多資料關係與資料觀察者模式
+    // A.實作"我的最愛"
+        // 概念：在表users與表products中間有一份表users_products，就是拿來表示多對多關係的"我的最愛"
+
+        // 1.終端輸入"php artisan make:migration create_favorites"
+
+        // 2.到(create_favorites.php)
+            public function up(): void
+            {
+                Schema::create('favorites', function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('user_id');
+                    $table->foreignId('product_id');
+                    $table->timestamps();
+                });
+            }
+            public function down(): void
+            {
+                Schema::dropIfExists('favorites');
+            }
+        // 3.終端輸入"php artisan migrate"
+        // 4.到資料表favorites，依照users去定義資料，以下為依照當前資料產生的舉例
+            // user_id      0 2 0
+            // product_id   1 1 3
+
+        // 5.到(Model/Product.php)，新增與User的關聯
+            use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+            public function favorite_users()
+            {
+                return $this->belongsToMany(User::class,'favorites') // 跟User的class有關係，且針對favorites的資料表去查詢
+            }
+
+        // 6.到(Model/User.php)，新增與Product的關聯
+            public function favorite_products()
+            {
+                return $this->belongsToMany(Product::class,'favorites') // 跟Product的class有關係，且針對favorites的資料表去查詢
+            }
+
+        // 7.終端輸入"php artisan tinker"
+        // 8.終端輸入"User::find(0)->favorite_products"，去取得user_id=0的關聯product_id
+        // 9.終端輸入"User::find(0)->favorite_products()->dd()"，可取得下了甚麼SQL語法
+    // B.有加入最愛的產品，如果補貨了要通知使用者，使用Observer
+        // 10.終端輸入"php artisan make:observer ProductObserver --model=Product" 生成一個對應Model=Product的Observer，叫做ProductObserver.php
+        //  通常Observer會綁定一個Model去觀察，針對新增、編輯、刪除等動作需要做出甚麼對應的動作
+
+        // 11.到(app/Providers/EventServiceProvider.php)
+            use App\Models\Product;
+            public function boot(): void
+            {
+                Product::observe(ProductObserver::class);// 綁定Product去執行事情
+            }
+
+        // 12.到(app/Observers/ProductObserverr.php)，可供查詢的幾種屬性dd($product);
+            // a.測試語法
+                public function updated(Product $product): void
+                {
+                    dd($product->getChanges()); // 終端進入tinker時，使用Product::first()->update(['quantity'=>50])，會回傳一個array，其中有被更改的值
+                }
+            // b.本番(正式語法，程式請寫此版本的)
+                // I.先測試是否能夠正確進到此邏輯中
+                    public function updated(Product $product): void
+                    {
+                        $changes = $product->getChanges();
+                        $originals = $product->getOriginal();
+                        if(isset($changes['quantity']) && $product->quantity > 0 && $originals['quantity'] == 0){ 
+                        // 如果貨物有被改變且貨物改變後數量大於0且原本的數量是0時
+                            // 使用['']方法取得代表，前一個值是Array，例如：$changes['quantity']，就代表$changes是Array
+                            dd(123);
+                        }
+                    }
+                // II.終端輸入"php artisan tinker"
+                // III.終端輸入"Product::first()->update(['quantity'=>0])"
+                // IV.終端輸入"Product::first()->update(['quantity'=>20])"，確定有回傳123，即正確
+        // 13.終端輸入"php artisan make:notification ProductReplenish"
+        // 14.到(Notifications/ProductReplenish.php)
+            protected $product;
+            public function __construct($product)
+            {
+                $this->product = $product;
+            }
+            public function via(object $notifiable): array
+            {
+                return ['database'];
+            }
+            public function toArray(object $notifiable): array
+            {
+                return [
+                    'msg'=>'your product'.$this->product->title.'replenished'
+                ];
+            }
+        
+        // 15.到(app/Observers/ProductObserverr.php)
+            use App\Notifications\ProductReplenish;
+            public function updated(Product $product): void
+            {
+                $changes = $product->getChanges();
+                $originals = $product->getOriginal();
+                if(isset($changes['quantity']) && $product->quantity > 0 && $originals['quantity'] == 0){ 
+                // 如果貨物有被改變且貨物改變後數量大於0且原本的數量是0時
+                    // 使用['']方法取得代表，前一個值是Array，例如：$changes['quantity']，就代表$changes是Array
+                    foreach( $product->favorite_users as $user){
+                    // 此處favorite_users會直接執行get，如果是favorite_users()，則要變成favorite_users()->get();才有辦法讀取
+                    // 因favorite_users()為執行SQL語法
+                        $user->notify(new ProductReplenish($product)); // 此處執行後會直接到ProductReplenish的__construct再到toArray
+                    }
+                }
+            }
+
+        // 16.終端輸入"php artisan tinker"
+        // 17.終端輸入"Product::first()->update(['quantity'=>0])"
+        // 18.終端輸入"Product::first()->update(['quantity'=>20])"
+        // 19.到資料表notifications看有沒有新增，可以查看data是否為自己設置的訊息，create_at是否為最新的時間
+
+// 9.HTTP Client
+    // 前導.Windows前導作業(Windows才需要)， Guzzel 套件在 4.0 版本後，機制有調整，所以要在本地設定好，Https 驗證相關的檔案，
+    //          因有機會遇到cURL error 60: SSL certificate problem: unable to get local issuer certificate
+        // 1.進入"http://curl.haxx.se/ca/cacert.pem"，自動下載檔案
+        // 2.將"cacert.pem"拖曳到php資料夾中(有php.ini的那個)
+        // 3.打開(php.ini)，搜尋"curl.cainfo ="，將其解開註解，並改成cacert.pem的檔案位置"curl.cainfo = C:\Users\lanze\Desktop\php-trainning\php\cacert.pem"
+        // 4.把Laravel重新打開
+
+    // A.由內向外打 API(打人家的API，就是用別人給的API)，此處為串接縮網址的API
+        // 1.到(ProductController.php)
+            use App\Http\Services\ShortUrlService;
+            public function sharedUrl($id){
+                $service = new ShortUrlService();
+                $url = $service->makeShortUrl("http://localhost:8000/product/$id");
+                return response(['url'=>$url]);
+            }
+        // 2.到(App/Http/Services/ShortUrlService.php)
+            <?php
+
+            namespace App\Http\Services;
+            
+            use GuzzleHttp\Client;
+            
+            class ShortUrlService
+            {
+                protected $client;
+                public function __construct()
+                {
+                    $this->client = new Client();
+                }
+                public function makeShortUrl($url)
+                {
+                    // 皮克看見：https://user.picsee.io/developers/
+                    $accesstoken = '20f07f91f3303b2f66ab6f61698d977d69b83d64';
+                    $data = [
+                        'url'=>$url,
+                    ];
+                    $response = $this->client->request(
+                        'POST',
+                        "https://api.pics.ee/v1/links/?access_token=$accesstoken",
+                        [
+                            'headers'=> ['Content-Type'=> 'application/json'],
+                            'body'=>json_encode($data)
+                        ]
+                    );
+                    $contents = $response->getBody()->getContents();
+                    $contents = json_decode($contents);
+                    return $contents->data->picseeUrl;
+                }
+            }
+        
+        // 3.到(web.php)路由建立
+            Route::get('/product/{id}/shared-url','ProductController@sharedUrl');
+
+        // 4.到(resources/views/web/index.blade.php)設定前端
+            @extends('layouts.app') 
+            @section('content')
+                <h2>商品列表</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <td>標題</td>
+                            <td>內容</td>
+                            <td>價格</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($products as $product) <!-- 此處的$products為WebController.php中的'products'-->
+                        <tr>
+                            @if( $product->id == 1 )
+                                <td class="special-text">{{$product->title}}</td>
+                            @else
+                                <td>{{$product->title}}</td>
+                            @endif
+                            <td>{{$product->content}}</td>
+                            <td>{{$product->price}}</td>
+                            <td>{{$product->quantity}}</td>
+                            <td>
+                                <input class="check_product" type="button" value="確認商品數量" data-id="{{$product->id}}">
+                                <input class="check_shared_url" type="button" value="分享商品" data-id="{{$product->id}}">
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            
+                <script
+                    src="https://code.jquery.com/jquery-3.7.0.min.js"
+                    integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="
+                    crossorigin="anonymous">
+                </script>
+                <script>
+                    $('.check_product').on('click',function(){
+                        $.ajax({
+                            method: "POST",
+                            url:'/product/check-product', // 此處不須加"."，或者"http://127.0.0.1:8000"，因此處為相對位置
+                            data:{id:$(this).data('id')}
+                        })
+                        .done(function(response){
+                            if(response){
+                                alert('商品數量充足');
+                            }else{
+                                alert('商品數量不夠');
+                            }
+                        })
+                    })
+                    $('.check_shared_url').on('click',function(){
+                        let id = $(this).data('id');
+                        $.ajax({
+                            method: "GET",
+                            url:`/product/${id}/shared-url`,
+                        })
+                        .done(function(msg){
+                            alert('請分享此縮網址' + msg.url);
+                        })
+                    })
+                </script>
+            @endsection
+
+        // 5.終端輸入"php artisan serve"
+            // 點擊"分享商品"，會跳出"請分享此縮網址${網址}"
+
+        // 6.到(App/Http/Services/ShortUrlService.php)把Token放到(.env)，因被駭客看到會被利用
+            // (.env)
+                URL_ACCESS_TOKEN =20f07f91f3303b2f66ab6f61698d977d69b83d64
+
+            // (ShortUrlService.php)
+                $accesstoken = env('URL_ACCESS_TOKEN');
+
+// 10.File Storage ，圖片上傳功能
+    // A.透過上傳圖片，理解檔案的儲存概念與應用 ( 前端 ) 
+        // 1.到(resources/views/lauouts/)
+            // 新增檔案：
+                // 1.admin_nav.blade.php
+                // 2.admin_app.blade.php
+                // 3.admin_modal.blade.php
+        
+        // 2.到(app/Http/Controller/Admin/ProductController.php)
+            // 從OrderController.php複製程式碼
+            // 並使用Ctrl+f的搜尋功能取代，並選擇Match Case(Match Whole Word不要選)，Order改成Product，order改成product
+            // 只保留index函式
+            // 刪除此行"use App\Notifications\ProductDelivery;"
+            <?php
+            namespace App\Http\Controllers\Admin;
+            use Illuminate\Http\Request;
+            use App\Http\Controllers\Controller;
+            use App\Models\Product;
+            class ProductController extends Controller
+            {
+                public function index(Request $request)
+                {  
+                    $productCount = Product::count(); // 執行SQL裡面的count函數，如果要sum就改成sum('欄位名稱')
+                    $dataPerpage = 2; // 設定成一頁兩筆資料
+                    $productPages = ceil($productCount / $dataPerpage); 
+                    // 會有幾頁的資料，會使用ceil函式(無條件進位)是因為假如最後一頁剩一筆資料或者沒填滿，還是必須顯示出來，會多一頁。
+                    
+                    $currentPage = isset($request->all()['page']) ? $request->all()['page'] : 1 ; // 當前頁數為幾，如果沒有回傳頁數則為1
+                    // 此處的productBy，可參考：SQL 特殊參數 - product
+                    // 因此處在get以前，都只是單純的SQL函式，處理完之後沒有下get，它會不知道要把資料送過來
+                    $products = Product::orderBy('created_at','asc') // 使用with，在撈資料前，先撈出關聯的Model資料，可使前端執行時SQL語法減少
+                                        // 此處的productItems.product可以將productItem與product的關聯都拉進來
+                                    ->offset($dataPerpage * ($currentPage - 1)) // 假如第1頁，就從第1筆資料(引數為[0])開始搜尋，第2頁就是2*(2-1)，從第三筆資料(引數為[2])開始搜尋
+                                    ->limit($dataPerpage) // 限制每頁兩個資料
+                                    ->get();
+                    return view('admin.products.index',['products'=>$products,
+                                                    'productCount'=>$productCount,
+                                                    'productPages'=>$productPages,
+                                                    ]);
+                }
+            }
+            
+        // 3.到(resources/views/admin/products/index.blade.php)
+            @extends('layouts.admin_app') 
+            @section('content')
+            <h2>產品列表</h2>
+            <span>產品總數： {{ $productCount }}</span>
+            <!-- 製作一個table讓訂單資料顯示出來 -->
+            <table>
+                <thead>
+                    <tr>
+                        <td>編號</td>
+                        <td>標題</td>
+                        <td>內容</td>
+                        <td>價格</td>
+                        <td>數量</td>
+                        <td>圖片</td>
+                        <td>功能</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!--此處任何$product底下的東西，都可以參考Model/Order是否設有與當下的東西有關聯，例：user和productItems-->
+                    <!-- 防呆，isset函式可以協助偵測某變數是否存在值 -->
+                    <!-- isset($product->$productItems) ? $product->$productItems->sum('price') : 0 ， $product->$productItems若有值則加總price欄位的值-->
+                    @foreach ($products as $product)
+                        <tr>
+                            <td>{{ $product->id }}</td>
+                            <td>{{ $product->title }}</td> 
+                            <td>{{ $product->content }}</td> 
+                            <td>{{ $product->price }}</td> 
+                            <td>{{ $product->quantity }}</td> 
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            
+            <!-- 新增一個分頁欄(可點選下一頁的功能) -->
+            <div>
+                <!--$productPages為此次訂單共分為幾個頁面  -->
+                <!-- a的部分在href使用"?"使得後端可接收資料 -->
+                @for ($i = 1; $i <= $productPages; $i++)
+                    <a href="/admin/products?page={{ $i }}">第 {{$i}} 頁</a> &nbsp;
+                @endfor
+            </div>
+            @endsection
+        // 4.到(resources/views/admin/orders/index.blade.php)
+            @extends('layouts.admin_app') 
+            @section('content')
+            
+            <h2>訂單列表</h2>
+            <span>訂單總數： {{ $orderCount }}</span>
+            <!-- 製作一個table讓訂單資料顯示出來 -->
+            <table>
+                <thead>
+                    <tr>
+                        <td>購買時間</td>
+                        <td>購買者</td>
+                        <td>商品清單</td>
+                        <td>訂單總額</td>
+                        <td>是否運送</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!--此處任何$order底下的東西，都可以參考Model/Order是否設有與當下的東西有關聯，例：user和orderItems-->
+                    <!-- 防呆，isset函式可以協助偵測某變數是否存在值 -->
+                    <!-- isset($order->$orderItems) ? $order->$orderItems->sum('price') : 0 ， $order->$orderItems若有值則加總price欄位的值-->
+                    @foreach ($orders as $order)
+                        <tr>
+                            <td>{{ $order->created_at }}</td>
+                            <td>{{ $order->user->name }}</td> 
+                            <td>
+                                @foreach ($order->orderItems as $orderItem)
+                                    {{ $orderItem->product->title }} &nbsp;
+                                @endforeach
+                            </td>
+                            <td>
+                                {{ 
+                                    isset($order->orderItems) ? $order->orderItems->sum('price') : 0
+                                }}
+                            </td>
+                            <td>{{ $order->is_shipped }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            
+            <!-- 新增一個分頁欄(可點選下一頁的功能) -->
+            <div>
+                <!--$orderPages為此次訂單共分為幾個頁面  -->
+                <!-- a的部分在href使用"?"使得後端可接收資料 -->
+                @for ($i = 1; $i <= $orderPages; $i++)
+                    <a href="/admin/orders?page={{ $i }}">第 {{$i}} 頁</a> &nbsp;
+                @endfor
+            </div>
+            
+            @endsection
+        // 5.到(web.php)路由建立
+            Route::resource('admin/products','Admin\ProductController');
+        // 6.到(resources/views/admin/products/index.blade.php)，新增相對應的按鈕
+            @foreach ($products as $product)
+                <tr>
+                    <td>{{ $product->id }}</td>
+                    <td>{{ $product->title }}</td> 
+                    <td>{{ $product->content }}</td> 
+                    <td>{{ $product->price }}</td> 
+                    <td>{{ $product->quantity }}</td> 
+                    <td></td>
+                    <td>
+                        <input type="button" class="upload_image" data-id="{{$product->id}}" value="上傳圖片">
+                    </td>
+                </tr>
+            @endforeach
+        // 7.到(resources/views/layouts/admin_modal.blade.php)
+            <div class="modal fade" id="upload-image" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="exampleModalLabel">上傳圖片</h1>
+                            <!-- 以下button為關閉的按鈕 -->
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form action="/admin/products/upload-image" method="POST" enctype="multipart/form-data">
+                            <!-- enctype="multipart/form-data"，才有辦法把圖片傳送到後端 -->
+                                <input type="hidden" id="product_id" name="product_id">
+                                <input type="file" id="product_image" name="product_image">
+                                <button type="sumbit" value="送出">送出</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        // 8.到(resources/views/admin/products/index.blade.php)
+            @extends('layouts.admin_app') 
+            @section('content')
+            <h2>產品列表</h2>
+            <span>產品總數： {{ $productCount }}</span>
+            <!-- 製作一個table讓訂單資料顯示出來 -->
+            <table>
+                <thead>
+                    <tr>
+                        <td>編號</td>
+                        <td>標題</td>
+                        <td>內容</td>
+                        <td>價格</td>
+                        <td>數量</td>
+                        <td>圖片</td>
+                        <td>功能</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!--此處任何$product底下的東西，都可以參考Model/Order是否設有與當下的東西有關聯，例：user和productItems-->
+                    <!-- 防呆，isset函式可以協助偵測某變數是否存在值 -->
+                    <!-- isset($product->$productItems) ? $product->$productItems->sum('price') : 0 ， $product->$productItems若有值則加總price欄位的值-->
+                    @foreach ($products as $product)
+                        <tr>
+                            <td>{{ $product->id }}</td>
+                            <td>{{ $product->title }}</td> 
+                            <td>{{ $product->content }}</td> 
+                            <td>{{ $product->price }}</td> 
+                            <td>{{ $product->quantity }}</td> 
+                            <td></td>
+                            <td>
+                                <input type="button" class="upload-image" data-id="{{$product->id}}" value="上傳圖片">
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            
+            <!-- 新增一個分頁欄(可點選下一頁的功能) -->
+            <div>
+                <!--$productPages為此次訂單共分為幾個頁面  -->
+                <!-- a的部分在href使用"?"使得後端可接收資料 -->
+                @for ($i = 1; $i <= $productPages; $i++)
+                    <a href="/admin/products?page={{ $i }}">第 {{$i}} 頁</a> &nbsp;
+                @endfor
+            </div>
+            <script>
+                const myModal = new bootstrap.Modal('#upload-image', {
+                        keyboard: false
+                    })
+                const modalToggle = document.getElementById('toggleMyModal'); 
+                $('.upload-image').click(function(){
+                    $('#product_id').val($(this).data('id'));
+                    myModal.show(modalToggle);
+                });
+                
+                    
+            </script>
+            @endsection
+        // 9.到瀏覽器看，按下"上傳圖片"，有跳出視窗表示成功
+            // 網址：http://127.0.0.1:8000/admin/products
+        // 10.到(web.php)新增路由
+             Route::post('admin/products/upload-image','Admin\ProductController@uploadImage');
+
+    // B.透過上傳圖片，理解檔案的儲存概念與應用 ( 後端 )
+        // 11.終端輸入"php artisan make:migration create_images"
+        // 12.到(migrations/create_images)
+            public function up(): void
+            {
+                Schema::create('images', function (Blueprint $table) {
+                    $table->id();
+                    $table->string('attachable_type', 255)->comment('來源表');
+                    $table->string('attachable_id', 255)->comment('來源表ID');
+                    $table->string('path', 255)->comment('路徑');
+                    $table->string('filename', 255)->comment('檔案名稱');
+                    $table->timestamps();
+                });
+            }
+        // 13.終端輸入"php artisan migrate"
+        // 14.到(Model/Product.php)建立關聯
+            public function image()
+            {
+                return $this->morphMany(Image::class,'attachable'); // 一對多的關聯函式
+            }
+        // 15.到(Model/Image.php)創立Imgae模組
+            <?php
+
+            namespace App\Models;
+            
+            use Illuminate\Database\Eloquent\Factories\HasFactory;
+            use Illuminate\Database\Eloquent\Model;
+            
+            class Image extends Model
+            {
+                use HasFactory;
+                protected $guarded =[''];
+            
+                public function attachable()
+                {
+                    return $this->morphTo(); // 為一對"多"的時候，取得"多"的資料
+                }
+            }
+        
+        // 16.到(Admin/ProductController.php)
+            public function uploadImage(Request $request)
+            {
+                $file = $request->file('product_image'); // 來自前端的(admin_modal.blade.php)的(<input type="file" id="product_image" name="product_image">)
+                $productId = $request->input('product_id');
+                if(is_null($productId)){ // 如果$productId是空的就不給他傳
+                    return redirect()->back()->withErrors(['msg'=>'參數錯誤']);
+                }
+                if(is_null($file)){ // 如果檔案是空的就不給他傳
+                    return redirect()->back()->withErrors(['msg'=>'參數錯誤']);
+                }
+                // 上傳檔案
+                $product = Product::find($productId);
+                $path = $file->store('images'); // 存到storage/app/images，若改成public/images會變成存到storage/app/public/images
+                $product->image()->create([
+                    'filename'=> $file->getClientOriginalName(),
+                    'path'=>$path
+                ]);
+                return redirect()->back();
+            }
+        
+        // 17.到(storage/app/images)，查看是否有圖片傳入
+        // 18.到資料表images查看是否有紀錄
+        // 19.(前端)到(admin/product/index.blade.php)，加入報錯功能
+            @if($errors->any())
+                <div class="alert alert-danger">
+                    <ul>
+                        @foreach( $errors->all() as $error)
+                            <li>{{$error}}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+        // 20.到(Admin/Product.php)，建立一個提取圖片的函式
+            use Illuminate\Support\Facades\Storage;
+            public function getImageUrlAttribute()
+            {
+                $images = $this->image;
+                if($images->isNotEmpty()){
+                    return Storage::url($images->last()->path);
+                }
+            }
+
+        // 21.終端輸入"php artisan storage:link"，此指令將會建立圖片到頁面連結
+            // 回傳
+            INFO  The [C:\Users\lanze\Desktop\php-trainning\Hiskio\blog\public\storage] link has been connected to 
+            [C:\Users\lanze\Desktop\php-trainning\Hiskio\blog\storage\app/public].
+            // 因此要注意資料表images的path，並調整到public，因程式連結的是"blog\storage\app/public"
+        // 22.將圖片移動到正確的路徑storage\app/public
+            // Q:為甚麼放到storage\app/public/images前端也能拿到資料
+                // A:因為這是因為傳給前端的 url，並不是直接拿資料庫的『 path 』，
+                //      而是透過 Product Model 內我們客製化的 『 image_url 』，
+                //      使用 Laravel Storage 的 Class，將儲存在 storage 內的檔案連接包裝出來喔！
+
+        // 23.(前端)到(admin/product/index.blade.php)
+            <td>
+                <a href="{{ $product->image_url }}">圖片連結</a>
+            </td>
+        // 24.終端輸入"php artisan serve"
+        // 25.瀏覽器點擊"圖片連結"，有跑出圖片即可。
+        
+// 11.Error Exception
+    // A.透過錯誤管理，優化系統錯誤機制
+    // 用意：使得錯誤產生時，不外洩資料(顯示客製化的頁面)，並且記錄使用者觸發BUG的操作流程到資料庫內，以便後續的優化。
+        // 1.終端輸入"php artisan make:migration create_log_errors"
+        // 2.到(migrations/create_log_errors.php)，創造欄位
+            public function up(): void
+            {
+                Schema::create('log_errors', function (Blueprint $table) {
+                    $table->id();
+                    $table->bigInteger('user_id')->default(0); //紀錄發生錯誤時是哪位user在操作的
+                    $table->text('exception')->nullable(); //紀錄錯誤的類別
+                    $table->text('message')->nullable(); //紀錄錯誤彈出時的訊息
+                    $table->integer('line')->nullable(); //紀錄錯誤發生在第幾行
+                    $table->json('trace')->nullable(); //紀錄追蹤錯誤觸發的執行流程
+                    $table->string('method')->nullable(); //紀錄user是使用GET還是其他方法時出的錯誤
+                    $table->json('params')->nullable(); //紀錄user回傳給後端的參數
+                    $table->text('uri')->nullable(); //紀錄user使用時，所打到的網址
+                    $table->text('user_agent')->nullable(); //紀錄user使用的瀏覽器，或者根本就是機器人
+                    $table->json('header')->nullable(); //紀錄user的屬性
+                    $table->timestamps();
+                });
+            }
+        // 3.終端輸入"php artisan migrate"，產生欄位
+        // 4.到(Model/LogError.php)，設定相關資料皆以Array回傳到後端
+            <?php
+
+            namespace App\Models;
+
+            use Illuminate\Database\Eloquent\Factories\HasFactory;
+            use Illuminate\Database\Eloquent\Model;
+            use Illuminate\Database\Eloquent\SoftDeletes;
+
+            class LogError extends Model
+            {
+                use HasFactory;
+                use SoftDeletes;
+                protected $guarded = ['']; // 此處為黑名單
+                protected $casts = [ // 這個屬性在被處理時，會被當作是甚麼資料類型，預設都為string，若是created類型就會是timestamp或者是datetime
+                    'trace' => 'array', // 'trace'先存為Array，後續再轉成json，先弄成Array以方便轉換，或者從資料庫的json拿出來，也可以直接轉成Array易於後端操作
+                    'params' => 'array',
+                    'header' => 'array'
+                ];
+            }
+        // 5.到(app/Exceptions/Handler.php)，建立發生錯誤時，使用register來分配錯誤所對應的處理函式
+            use App\Models\LogError;
+            public function register(): void // 紀錄發生錯誤訊息時，應當執行哪個函式，或者該顯示何種錯誤頁面
+            {
+                $this->reportable(function (Throwable $exception) {
+                    //使用reportable函式，可使用各種report功能
+                    $user = auth()->user(); //取得目前執行到發生錯誤的user是誰(user_id)
+                    LogError::create([
+                        'user_id' => $user ? $user->id : 0,
+                        'message' => $exception->getMessage(), 
+                        // 因發生錯誤時，資料都被包在$exception這個物件內，因此使用getMessage()取得錯誤訊息
+                        'exception' => get_class($exception), // 可得知錯誤訊息屬於哪個類別
+                        'line' => $exception->getline(),  // 取得錯誤訊息在第幾行
+                        'trace' => array_map(function($trace){
+                            unset($trace['args']); //先將多餘的參數移除掉，以防止資料肥大，再回傳乾淨的$trace
+                            return $trace; // 回傳乾淨的$trace
+                        },$exception->getTrace()), 
+                        // 直接使用$exception->getTrace()會造成它將所有資料調入，也造成無意義的資料也一起被撈入，導致資料庫肥大，因此需array_map
+                        'method' => request()->getMethod(),//取得前端使用的method
+                        'params' => request()->all(),//取得user回傳的參數
+                        'uri' => request()->getPathInfo(),//取得user的網址資訊
+                        'user_agent' => request()->userAgent(),//取得user的瀏覽器
+                        'header' => request()->headers->all(),//取得user的屬性
+                    ]);
+                });
+            }
+        // 6.如何測試，到(app/Http/Service/ShortUrlService.php)
+            class ShortUrlService
+            {
+                protected $client;
+                public function __construct()
+                {
+                    $this->client = new Client();
+                }
+                public function makeShortUrl($url)
+                {
+                    try{
+                        // 皮克看見：https://user.picsee.io/developers/
+                        $accesstoken = env('URL_ACCESS_TOKEN');
+                        $data = [
+                            'url'=>$url,
+                        ];
+                        $response = $this->client->request(
+                            'POST',
+                            "https://api.pics.ee/v1/links/?access_token=$accesstoken",
+                            [
+                                'headers'=> ['Content-Type'=> 'application/json'],
+                                'body'=>json_encode($data)
+                            ]
+                        );
+                        $contents = $response->getBody()->getContents();
+                        $contents = json_decode($contents);
+                        $contents['a']['123']; // 此處為故意新增的錯誤行，來導致錯誤發生，進而監測錯誤處理是否符合預期
+                    }catch(\Throwable $th){
+                        report($th); // 發生錯誤時，會執行(app/Exceptions/Handler.php)裡面的$this->reportable
+                        return $url; // 假設縮網址真的有問題給不出來，至少該給出網址本身
+                    }
+                    return $contents->data->picseeUrl;
+                }
+            }
+        // 7.終端輸入"php artisan serve"，然後去瀏覽器，點選"分享商品"，看使否得到原本的網址而非縮網址
+        // 8.到資料表log_errors查看是否有出現剛剛的錯誤，資料表中的資料是否有正確紀錄與捕捉到資訊，特別是trace可以拿來Debug
+    // B.如何管理出錯畫面(不讓錯誤畫面出現)
+        // 9.新增錯誤，到(app/Http/Service/ShortUrlService.php)
+            public function makeShortUrl($url)
+            {   
+                $a['123']['123'];
+        // 10.到瀏覽器點選"分享商品"，再到network/response確認有回傳錯誤
+        // 11.到(app/Exceptions/Handler.php)在register()內，新增發生錯誤時到error頁面
+            $this->renderable(function(Throwable $exception){
+                return response()->view('error');
+            });
+        // 12.到(views/error.blade.php)
+            很抱歉出現了問題！
+
+// 12.Logging
+    // A.日誌記錄，協助系統維運工作(通常會丟到Google雲端託管，在storage_path('logs/url_shorten.log')可以設定傳給Google)
+        // try&catch與Log的差異：
+            // 使用try&catch是被動紀錄發生錯誤時才紀錄資料的方式，而Log是屬於主動想記錄某些事情的方式
+        // 例如：串縮網址的API時，傳輸出去的資料是甚麼，收到的資料是甚麼，因縮網址有次數限制，
+        //      導致何時達次數上限也不知，因此設LOG來監測是必須且合理的。
+
+        // 1.到(app/Http/Service/ShortUrlService.php)，紀錄輸出的資料是甚麼
+            use Illuminate\Support\Facades\Log; //TODO:此處為本次新增的程式碼
+            public function makeShortUrl($url)
+            {   
+                try{
+                    // 皮克看見：https://user.picsee.io/developers/
+                    $accesstoken = env('URL_ACCESS_TOKEN');
+                    $data = [
+                        'url'=>$url,
+                    ];
+                    Log::info('postData',['data'=>$data]); // 指定為info層級，前綴詞為postData TODO:此處為本次新增的程式碼
+                    $response = $this->client->request(
+                        'POST',
+                        "https://api.pics.ee/v1/links/?access_token=$accesstoken",
+                        [
+                            'headers'=> ['Content-Type'=> 'application/json'],
+                            'body'=>json_encode($data)
+                        ]
+                    );
+                    $contents = $response->getBody()->getContents();
+                    $contents = json_decode($contents);
+                    $contents['a']['123'];
+                }catch(\Throwable $th){
+                    report($th); // 發生錯誤時，會執行(app/Exceptions/Handler.php)裡面的$this->reportable
+                    return $url; // 假設縮網址真的有問題給不出來，至少該給出網址本身
+                }
+                return $contents->data->picseeUrl;
+            }
+
+        // 2.到瀏覽器去點選"分享商品"
+        // 3.到(storage/logs/laravel.log)，此次前綴設為"postData"，因此直接搜尋"postData"即可找到。
+        // 4.到(app/Http/Service/ShortUrlService.php)，紀錄回傳的資料是甚麼
+            public function makeShortUrl($url)
+            {   
+                try{
+                    // 皮克看見：https://user.picsee.io/developers/
+                    $accesstoken = env('URL_ACCESS_TOKEN');
+                    $data = [
+                        'url'=>$url,
+                    ];
+                    Log::info('postData',['data'=>$data]); // 指定為info層級，前綴詞為postData
+                    $response = $this->client->request(
+                        'POST',
+                        "https://api.pics.ee/v1/links/?access_token=$accesstoken",
+                        [
+                            'headers'=> ['Content-Type'=> 'application/json'],
+                            'body'=>json_encode($data)
+                        ]
+                    );
+                    $contents = $response->getBody()->getContents();
+                    Log::info('responseData',['data'=>$contents]); //TODO:此次新增的程式碼
+                    $contents = json_decode($contents);
+                }catch(\Throwable $th){
+                    report($th); // 發生錯誤時，會執行(app/Exceptions/Handler.php)裡面的$this->reportable
+                    return $url; // 假設縮網址真的有問題給不出來，至少該給出網址本身
+                }
+                return $contents->data->picseeUrl;
+            }
+        // 5.重複2.~3.的步驟，只是"postData"，改成"responseData"，這樣當發現問題時，可以回頭來laravel.log查看
+        // 6.若全都在laravel.log查看log會亂掉，因此可另成立頻道，到(app/Http/Service/ShortUrlService.php)，新增channel
+            public function makeShortUrl($url)
+            {   
+                try{
+                    // 皮克看見：https://user.picsee.io/developers/
+                    $accesstoken = env('URL_ACCESS_TOKEN');
+                    $data = [
+                        'url'=>$url,
+                    ];
+                    Log::channel('url_shorten')->info('postData',['data'=>$data]); // TODO:新增channel
+                    $response = $this->client->request(
+                        'POST',
+                        "https://api.pics.ee/v1/links/?access_token=$accesstoken",
+                        [
+                            'headers'=> ['Content-Type'=> 'application/json'],
+                            'body'=>json_encode($data)
+                        ]
+                    );
+                    $contents = $response->getBody()->getContents();
+                    Log::channel('url_shorten')->info('responseData',['data'=>$contents]); // TODO:新增channel
+                    $contents = json_decode($contents);
+                }catch(\Throwable $th){
+                    report($th); // 發生錯誤時，會執行(app/Exceptions/Handler.php)裡面的$this->reportable
+                    return $url; // 假設縮網址真的有問題給不出來，至少該給出網址本身
+                }
+                return $contents->data->picseeUrl;
+            }
+        // 7.到(config/logging)到'channel'底下新增跟"'single' => ["一樣的文法，使channel能夠正確的找到url_shorten的位置，如下
+            'url_shorten' => [
+                'driver' => 'single',
+                'path' => storage_path('logs/url_shorten.log'),
+                'replace_placeholders' => true,
+            ],
+        // 8.重複2.~3.的步驟，只是此處到url_shorten.log中察看
+
+// Composer推薦套件參考網址：https://github.com/godruoyi/laravel-package-top
+
+// 13.Laravel Excel
+            // 介紹： Laravel Excel使用的是PhpSpreadsheet ，不只有Laravel可以用，如CI等等的都可以使用此套件。
+    // A.安裝
+        // 官網安裝位置：https://docs.laravel-excel.com/3.1/getting-started/installation.html
+    // 流程：到"官網安裝位置" -> 終端輸入"composer require maatwebsite/excel"  -> 
+    //       終端輸入"php artisan vendor:publish --provider="Maatwebsite\Excel\ExcelServiceProvider" --tag=config" ->
+    //       若跑出" INFO  No publishable resources for tag [config]."，就代表可以不用(config/excel.php) ->
+    //       
+
+    // 參考網站(如何使用phpspreadsheet)： https://phpspreadsheet.readthedocs.io/en/latest/
+
+    // B.介紹
+        // 參考網站：https://docs.laravel-excel.com/3.1/architecture/objects.html
+        // 架構：
+            //     .
+            // ├── app
+            // │   ├── Exports (Groups all exports in your app)
+            // │   │   ├── UsersExport.php
+            // │   │   ├── ProductsExport.php
+            // │   │   └── Sheets (You can group sheets together)
+            // │   │      ├── InactiveUsersSheet.php
+            // │   │      └── ActiveUsersSheet.php
+            // |   |
+            // │   ├── Imports (Groups all imports in your app)
+            // │   │   ├── UsersImport.php
+            // │   │   ├── ProductsImport.php
+            // │   │   └── Sheets (You can group sheets together)
+            // │   │      ├── OutOfStockProductsSheet.php
+            // │   │      └── ProductsOnSaleSheet.php
+            // │ 
+            // └── composer.json
+
+    // C.Collection
+        // 參考網址：https://docs.laravel-excel.com/3.1/architecture/concerns.html
+        // 搜尋：FromCollection
+
+    // D.Hooks
+        // 參考網址：https://docs.laravel-excel.com/3.1/architecture/objects.html
+        // 用途：對於資料匯出前或後，所做的處理。
+
+    // E.基礎匯出和匯入
+        // 1.終端輸入"php artisan make:export OrderExport --model=Order"，創造出的匯出(OrderExport)與模組Order有關聯
+
+
+
+
+
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+            
+            
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+                
+                
+                
+                
+                
+                
+                
+                
+                
+
+
+                
+            
+
+
+
+
+
+
+
+
+
                     
 
 

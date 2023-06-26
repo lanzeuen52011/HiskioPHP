@@ -13,15 +13,26 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/','WebController@index');
+Route::get('/contact-us','WebController@contactUs');
+Route::post('/read-notification','WebController@readNotification');
+Route::post('/product/check-product','ProductController@checkProduct');
+Route::get('/product/{id}/shared-url','ProductController@sharedUrl');
 // 以上方為例，設定當使用者要get'/'時，就執行函數來回傳resources/views/welcome.blade.php
 // 以下方為例，設定當使用者要post'/'時，就進到名為'ProductController'的Controller，並使用create函數
 // Route::post('/','ProductController@create');
 
 Route::resource('product','ProductController');
 // 此為針對product去產生各種網址，並且對應到ProductController。
+
+
+Route::resource('admin/orders','Admin\OrderController');
+Route::resource('admin/products','Admin\ProductController');
+Route::post('admin/products/upload-image','Admin\ProductController@uploadImage');
+Route::post('admin/orders/{id}/delivery','Admin\OrderController@delivery');
+Route::post('admin/tools/update-product-price','Admin\ToolController@updateproductprice');
+Route::post('admin/tools/creat-product-redis','Admin\ToolController@createProductRedis');
+
 
 
 Route::post('signup','AuthController@signup');

@@ -45,4 +45,9 @@ class User extends Authenticatable
     public function carts(){
         return $this->hasMany(Cart::class);
     }
+    public function favorite_products()
+    {
+        return $this->belongsToMany(Product::class,'favorites'); // 跟User的class有關係，且針對favorites的資料表去查詢
+    }
+
 }
