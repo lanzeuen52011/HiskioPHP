@@ -37,7 +37,6 @@ class Cart extends Model
             if($this->user->level ==2){
                 $this->rate = 0.8; //如果是vip(使用者等級2)，就打八折
             }
-            throw new Exception('123123');
             foreach($this->cartItems as $cartItem){ // 把購物車的cartitem每個都轉成orderitem
                 $order->orderItems()->create([
                     'product_id'=>$cartItem->product_id,

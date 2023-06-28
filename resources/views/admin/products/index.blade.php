@@ -3,6 +3,9 @@
 @section('content')
 <h2>產品列表</h2>
 <span>產品總數： {{ $productCount }}</span>
+<div>
+    <input type="button" class="import" value="匯入 Excel">
+</div>
 @if($errors->any())
     <div class="alert alert-danger">
         <ul>
@@ -57,16 +60,21 @@
     @endfor
 </div>
 <script>
-    const myModal = new bootstrap.Modal('#upload-image', {
+    const uploadImage = new bootstrap.Modal('#upload-image', {
             keyboard: false
         })
     const modalToggle = document.getElementById('toggleMyModal'); 
     $('.upload-image').click(function(){
         $('#product_id').val($(this).data('id'));
-        myModal.show(modalToggle);
+        uploadImage.show(modalToggle);
     });
     
-        
+    const excelImport = new bootstrap.Modal('#import', {
+            keyboard: false
+        })
+    $('.import').click(function(){
+        excelImport.show(modalToggle);
+    })
 </script>
 @endsection
 

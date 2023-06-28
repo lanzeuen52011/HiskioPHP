@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Imports\ProductImport;
 use App\Models\Product;
+use Maatwebsite\Excel\Excel;
 
 class ProductController extends Controller
 {
@@ -47,6 +49,14 @@ class ProductController extends Controller
             'filename'=> $file->getClientOriginalName(),
             'path'=>$path
         ]);
+        return redirect()->back();
+    }
+    public function import(Request $request)
+    {
+        $file = $request->file('excel');
+        $excel = app()->make(Excel::class);
+        $excel->import(new ProductImport, $file); // 上傳時會自動解析成Array格式
+
         return redirect()->back();
     }
 }

@@ -5,6 +5,10 @@
 <h2>訂單列表</h2>
 <span>訂單總數： {{ $orderCount }}</span>
 <!-- 製作一個table讓訂單資料顯示出來 -->
+<div>
+    <a href="/admin/orders/excel/export">匯出訂單 Excel</a>
+    <a href="/admin/orders/excel/export-by-shipped">匯出分類訂單 Excel</a>
+</div>
 <table>
     <thead>
         <tr>

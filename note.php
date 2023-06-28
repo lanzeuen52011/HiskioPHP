@@ -3558,9 +3558,10 @@
             // 介紹： Laravel Excel使用的是PhpSpreadsheet ，不只有Laravel可以用，如CI等等的都可以使用此套件。
     // A.安裝
         // 官網安裝位置：https://docs.laravel-excel.com/3.1/getting-started/installation.html
-    // 流程：到"官網安裝位置" -> 終端輸入"composer require maatwebsite/excel"  -> 
+    // 流程：到php.in中，找到"extension=gd與extension=zip"將註解";"解掉 -> 到"官網安裝位置" -> 
+    //       終端輸入"composer require maatwebsite/excel"  -> 
     //       終端輸入"php artisan vendor:publish --provider="Maatwebsite\Excel\ExcelServiceProvider" --tag=config" ->
-    //       若跑出" INFO  No publishable resources for tag [config]."，就代表可以不用(config/excel.php) ->
+    //       (config/app.php)會被更改，(config/excel.php)會被新增
     //       
 
     // 參考網站(如何使用phpspreadsheet)： https://phpspreadsheet.readthedocs.io/en/latest/
@@ -3594,8 +3595,598 @@
         // 參考網址：https://docs.laravel-excel.com/3.1/architecture/objects.html
         // 用途：對於資料匯出前或後，所做的處理。
 
-    // E.基礎匯出和匯入
+    // E.資料匯出
         // 1.終端輸入"php artisan make:export OrderExport --model=Order"，創造出的匯出(OrderExport)與模組Order有關聯
+        // 2.到(app/Exports/OrderExport.php)，看看沒有有問題，基本上是沒有
+            namespace App\Exports;
+            use App\Models\Order;
+            use Illuminate\Support\Facades\Schema;
+            use Maatwebsite\Excel\Concerns\FromCollection;
+            use Maatwebsite\Excel\Concerns\WithHeadings;
+            class OrderExport implements FromCollection, WithHeadings
+            {
+                public function collection()
+                {
+                    return Order::all();
+                }
+                public function headings() : array
+                {
+                    // array的用途在於回傳給headings時，一定要是array
+                    return Schema::getColumnListing('orders'); // 指定拿到資料表orders的欄位名稱
+                }
+            }
+        // 3.到(OrderController.php)，新增function
+            use App\Exports\OrderExport;
+            use Maatwebsite\Excel\Excel;
+            public function export()
+            {
+                $excel = app()->make(Excel::class);
+                return $excel->download(new OrderExport, 'orders.xlsx');
+            }
+        // 4.到(views/admin/orders/index.blade.php)，新增匯出按鈕
+            <div>
+                <a href="/admin/orders/excel/export">匯出訂單 Excel</a>
+            </div>
+        // 5.(web.php)
+            Route::get('admin/orders/excel/export','Admin\OrderController@export');
+        // 6.終端輸入"php artisan serve"
+        // 7.到瀏覽器去按"匯出訂單 Excel"
+
+    // F.資料匯入
+        // 1.到(views/admin/layouts/index.blade.php)，建立"匯入 Excel"的按鈕
+            <div>
+                <input type="button" class="import" value="匯入 Excel">
+            </div>
+        // 2.到(views/admin/products/admin_modal.blade.php)，建立跳出的頁面(Modal)
+            <div class="modal fade" id="import" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="exampleModalLabel">匯入 Excel</h1>
+                            <!-- 以下button為關閉的按鈕 -->
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form action="/admin/products/excel/import" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <!-- enctype="multipart/form-data"，才有辦法把圖片傳送到後端 -->
+                                <input type="file" id="excel" name="excel">
+                                <input type="submit" value="送出">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        // 3.到(views/admin/layouts/index.blade.php)，把按下"匯入 Excel"，會跳出的頁面(Modal)的JS加上
+            <div>
+                <input type="button" class="import" value="匯入 Excel">
+            </div>
+            <script>
+                const excelImport = new bootstrap.Modal('#import', {
+                    keyboard: false
+                })
+
+                $('.import').click(function(){
+                excelImport.show(modalToggle);
+                })
+            </script>
+
+        // 4.到(wep.php)
+            Route::post('admin/products/excel/import','Admin\ProductController@import');
+
+        // 5.終端輸入"php artisan make:import ProductImport --model=Product"
+        // 6.到(app/Import/ProductImport.php)
+            public function model(array $row) // (array $row)，當檔案傳進來的時候，檔案被匯入時，會一行一行的匯入
+            {
+                dd($row);
+                return new Product([
+                    //
+                ]);
+            }
+        // 7.到(Admin/ProductController.php)，新增import函式
+            use Maatwebsite\Excel\Excel;
+            public function import(Request $request)
+            {
+                $file = $request->file('excel');
+                $excel = app()->make(Excel::class);
+                $excel->import(new ProductImport, $file); // 上傳時會自動解析成Array格式
+        
+                return redirect()->back();
+            }
+
+        // 8.終端輸入"php artisan serve"
+        // 9.到"http://127.0.0.1:8000/admin/products/"，測試匯入，確定回傳array資料即可
+        // 10.到(app/Import/ProductImport.php)，將程式更改
+            public function model(array $row) // (array $row)，當檔案傳進來的時候，檔案被匯入時，會一行一行的匯入
+            {
+                return new Product([
+                    'title' => $row[0],
+                    'content' => $row[1],
+                    'price' => $row[2],
+                    'quantity' => $row[3],
+                ]);
+            }
+        // 11.到"http://127.0.0.1:8000/admin/products/"，測試匯入，並到最後一頁確定資料有匯入
+
+    // G.多活頁 Excel 和基礎格式操作匯出
+        // 1.到(views/admin/orders/index.blade.php)
+            <a href="/admin/orders/excel/export-by-shipped">匯出分類訂單 Excel</a>
+        // 2.到(web.php)
+            Route::get('admin/orders/excel/export-by-shipped','Admin\OrderController@exportByShipped');
+        // 3.到(Admin/OrderController.php)
+            use App\Exports\OrderMultipleExport;
+            use App\Exports\Sheets\OrderByShippedSheet;
+            public function exportByShipped()
+            {
+                $excel = app()->make(Excel::class);
+                return $excel->download(new OrderMultipleExport, 'orders_by_shipped.xlsx');
+            }
+        // 4.到(app/Exports/OrderMultipleExport.php)
+            namespace App\Exports\Sheets;
+            
+            use App\Models\Order;
+            use Illuminate\Support\Facades\Schema;
+            use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+            use App\Exports\Sheets\OrderByShippedSheet;
+            
+            class OrderMultipleExport implements WithMultipleSheets
+            // 不需要FromCollection, WithHeadings，是因為資料在活頁簿裡組合而成的，不是在Excel組合而成的
+            {
+                public function sheets():array
+                {
+                    $sheets = [];
+                    foreach ([true,false] as $isShipped ){
+                        $sheets[] = new OrderByShippedSheet($isShipped);
+                    }
+                    return $sheets;
+                }
+            }
+        // 5.到(app/Exports/Sheets/OrderByShippedSheet.php)
+            namespace App\Exports;
+            
+            use App\Models\Order;
+            use Illuminate\Support\Facades\Schema;
+            use Maatwebsite\Excel\Concerns\FromCollection;
+            use Maatwebsite\Excel\Concerns\WithHeadings;
+            use Maatwebsite\Excel\Concerns\WithTitle;
+            
+            
+            class OrderByShippedSheet implements FromCollection, WithHeadings, WithTitle
+            {
+                public $isShipped;
+                public function __construct($isShipped)
+                {
+                    $this->isShipped = $isShipped;
+                }
+                /**
+                * @return \Illuminate\Support\Collection
+                */
+                public function collection()
+                {
+                    return Order::where('is_shipped', $this->isShipped)->get();
+                }
+                public function headings() : array
+                {
+                    // array的用途在於回傳給headings時，一定要是array
+                    return Schema::getColumnListing('orders'); // 指定拿到資料表orders的欄位名稱
+                }
+                public function title():string
+                {
+                    return $this->isShipped ? '已運送' : '尚未運送';
+                }
+            }
+        // 6.到http://127.0.0.1:8000/admin/orders，按"匯出分類訂單 Excel"，檢查下載下來的檔案
+
+    // H.客製化ExcelSheets格式
+        // 1.到(Export/OrderExport.php)
+            public function collection()
+            {
+                $orders = Order::with(['user','cart.cartItems.product'])->get();
+                $orders = $orders->map(function($order){
+                    // 使$order重組陣列
+                    return [
+                        $order->id, // 訂單id
+                        $order->user->name, // 訂單買家
+                        $order->is_shipped, // 訂單是否運送
+                        $order->cart->cartItem->sum(function($cartItem){
+                            return $cartItem->product->price * $cartItem->quantity;
+                        }),
+                        $order->created_at
+                    ];
+                });
+                return $orders;
+            }
+        // 2.到(Export/OrderExport.php)
+            use PhpOffice\PhpSpreadsheet\Shared\Date;
+            use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+            use App\Models\Order;
+            use Illuminate\Support\Facades\Schema;
+            use Maatwebsite\Excel\Concerns\FromCollection;
+            use Maatwebsite\Excel\Concerns\WithHeadings;
+            use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+
+            class OrderExport implements FromCollection, WithHeadings, WithColumnFormatting
+            {
+                public function collection()
+                {
+                    $orders = Order::with(['user','cart.cartItems.product'])->get();
+                    $orders = $orders->map(function($order){
+                        // 使$order重組陣列
+                        return [
+                            $order->id, // 訂單id
+                            $order->user->name, // 訂單買家
+                            $order->is_shipped, // 訂單是否運送
+                            $order->cart->cartItems->sum(function($cartItems){
+                                return $cartItems->product->price * $cartItems->quantity;
+                            }),
+                            Date::dateTimeToExcel($order->created_at)
+                        ];
+                    });
+                    return $orders;
+                }
+                public function headings() : array
+                {
+                    return ['編號','購買者','是否運送','總價','建立時間'];
+                }
+                public function columnFormats():array
+                {
+                    return[
+                        'B' => NumberFormat::FORMAT_TEXT, //B欄所使用的格式
+                        'D' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+                        'E' => NumberFormat::FORMAT_DATE_DDMMYYYY
+                    ];
+                }
+            }
+
+    // I.複雜格式化操作
+        // 1.到(OrderExport.php)引入WithEvents，當Excel被做出來後才去上色
+            namespace App\Exports;
+            
+            use PhpOffice\PhpSpreadsheet\Shared\Date;
+            use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+            use App\Models\Order;
+            use Illuminate\Support\Facades\Schema;
+            use Maatwebsite\Excel\Concerns\FromCollection;
+            use Maatwebsite\Excel\Concerns\WithHeadings;
+            use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+            use Maatwebsite\Excel\Concerns\WithEvents; // TODO:
+            use Maatwebsite\Excel\Events\AfterSheet; // TODO:
+            
+            class OrderExport implements FromCollection, WithHeadings, WithColumnFormatting, WithEvents // TODO:
+            {
+                // FromCollection(collection) ：資料會以Collection格式傳送
+                // WithHeadings(headings) ：Excel中會產生標頭
+                // WithColumnFormatting(columnFormats) ：Excel匯出的資料格式更改，如：時間戳->西元日期
+                // WithEvents(registerEvents) 當Excel被做出來後才去上色
+                /**
+                * @return \Illuminate\Support\Collection
+                */
+                public $dataCount; // TODO:
+                public function collection()
+                {
+                    $orders = Order::with(['user','cart.cartItems.product'])->get();
+                    $orders = $orders->map(function($order){
+                        // 使$order重組陣列
+                        return [
+                            $order->id, // 訂單id
+                            $order->user->name, // 訂單買家
+                            $order->is_shipped, // 訂單是否運送
+                            $order->cart->cartItems->sum(function($cartItems){
+                                return $cartItems->product->price * $cartItems->quantity;
+                            }),
+                            Date::dateTimeToExcel($order->created_at)
+                        ];
+                    });
+                    $this->dataCount = $orders->count()+1; // 紀錄總共有幾筆資料，因為有可能只需要其中的某些資料做格式設定而已
+                    // +1是為了讓數字正確
+                    // TODO:
+                    return $orders;
+                }
+                public function headings() : array
+                {
+                    return ['編號','購買者','是否運送','總價','建立時間'];
+                }
+                public function columnFormats():array
+                {
+                    return[
+                        'B' => NumberFormat::FORMAT_TEXT, //B欄所使用的格式
+                        'D' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+                        'E' => NumberFormat::FORMAT_DATE_DDMMYYYY
+                    ];
+                }
+                public function registerEvents(): array // TODO:
+                {
+                    return [
+                        AfterSheet::class => function (AfterSheet $event){
+                            // 使用AfterSheet，來指定當資料表被製作出來時，需執行的程式碼
+                            $event->sheet->getDelegate()->getColumnDimension('A')->setWidth(50); // 設定A欄的寬度為50
+                            // 使用getDelegate()來取用PhpSpreadsheet中的函式，老師極度推薦讀完PhpSpreadsheet官方文件的Recipes，getActiveSheet()=getDelegate()
+                            // 此處是針對單頁所設計的程式碼，因此如果是多頁的，須將此程式碼放到Exports/Sheets中
+                            for($i=0 ; $i < $this->dataCount ; $i++){
+                                $event->sheet->getDelegate()->getRowDimension($i)->setRowHeight(50); // 設定$i列的高度為50
+                            }
+                            $event->sheet->getDelegate()->getStyle('A1:B'.$this->dataCount)->getAlignment()->setVertical('center');
+                            // 從A1到B ${$this->dataCount} 的表格都置中
+            
+                            // 批次格式調整，其他的幾乎都是針對單一特性或格式去調整
+                            $event->sheet->getDelegate()->getStyle('A1:A'.$this->dataCount)->applyFromArray([
+                                'font' => [
+                                    'name' => 'Arial',
+                                    'bold' => true,
+                                    'italic' => true,
+                                    'color' => [
+                                        'rgb' => 'FF0000'
+                                    ]
+                                    ],
+                                'fill' => [
+                                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                                    'startColor' => [
+                                        'rgb' => '000000'
+                                    ],
+                                    'endColor' => [
+                                        'rgb' => '000000'
+                                    ]
+                                ]
+                            ]);
+                            // 合併儲存格，合併G1到H1的儲存格
+                            $event->sheet->getDelegate()->mergeCells('G1:H1');
+                        }
+                    ];
+                }
+            }
+        // 2.終端輸入"php artisan serve"，到http://127.0.0.1:8000/admin/orders，點選"匯出訂單 Excel"，看看資料正不正確
+
+
+// 14.Composer熱門套件
+    // I.Laravel Debuger
+        // 開發者：Barry vd. Huevel (其經營的公司有許多開源專案，可供參考)
+        // 可設定只出現在開發與測試環境，且提供多種重要參數(Queue、Timeline)，可以直接知道SQL的Query，以及各種事情花費的時間等
+
+    // II.Laravel Socialite
+        // 整合多項第三方登入機制，包刮Google、FB、Github等等的
+        // Laravel官方指定第三套件
+        // 易用，網路有許多範例
+
+    // III.Eloquent - Sluggable
+        // 實現優雅的網址命名，增進SEO與可讀性
+        // 輕量使用，透過擴充model函式即可設定
+        // 功能強大，包含多屬性組合網址與特定Event
+
+    // IV.ReCatcha
+        // 最常見的登入驗證機制
+        // "我不是機器人" 方塊打勾選項
+
+    // V.Image
+        // 圖片處理，包括重新切割、建立圖片、抓取選定大小
+        // 需搭配GD Library 、 Imagick 無介面圖片處理軟體
+        // 官方文件，使用方式齊全易查
+
+    // VI.Laravel Snappy
+        // 開發者：Barry vd. Huevel (其經營的公司有許多開源專案，可供參考)
+        // 使用知名開發軟體 wkhtmltopdf ， 實現將html轉成pdf
+        // 但要注意CSS的問題
+
+    // VII. Laravel I5-repository (雖然此處是寫5，可事實是目前都有在持續更新，以支援最新版本)
+        // 以類似Controller、Request的方式擴充，設定Repository設計模式
+        // 同樣包裹Criteria、Presenter模式結構
+        // 使用此套件快速產生各種功能的意思
+
+// 15.系統架構優化
+    // A.物件導向概念建構
+        // 1.private：僅此類可呼叫到用private宣告的函式或者變數
+            // I.到(Service/ShortUrlService.php)
+                    private  $version = 2.5;
+                    public function __construct()
+                    {
+                        $this->client = new Client();
+                        dump($this->version);
+                    }
+            // II.終端輸入"php artisan tinker"
+            // III.終端輸入"app()->make('ShortUrlService')"，會看到返回值2.5
+            // IV.到(Service/TryService.php)，新增一個class
+                <?php
+
+                class TryService
+                {
+                    public function callTry(){
+                        $service = app()->make('ShortUrlService'); // 建立一個service物件
+                        dd($service->version);
+                    }
+                }
+            // V.終端輸入"php artisan tinker"
+            // VI.終端輸入"app()->make('TryService')->callTry()"，會看到無法存取private屬性的version。
+         // 2.public：任何人都可以呼叫的
+            // I.到(Service/ShortUrlService.php)，將private改成public
+                public  $version = 2.5;
+            // II.終端輸入"php artisan tinker"
+            // III.終端輸入"app()->make('TryService')->callTry()"，會看到返回兩次2.5
+        // 3.prtected：僅繼承的實例或者類本身可以呼叫
+            // I.到(Service/ShortUrlService.php)，將public改成protected
+            // II.終端輸入"php artisan tinker"
+            // III.終端輸入"app()->make('TryService')->callTry()"，會看到無法存取protected屬性的vision
+            // IV.到(Service/TryService.php)，將class設定延伸來自ShortUrlService
+                class TryService extends ShortUrlService{}
+            // V.終端輸入"php artisan tinker"
+            // VI.終端輸入"app()->make('TryService')->callTry()"，可以看到正常的回傳2.5
+        // 4.static：不需要new物件就可以直接呼叫的類別
+            // 例如： Order::class的class就是static。
+
+    // B.關於物件三大特性的繼承那件事
+        // 1.Abstract 抽象類別(虛擬類別)：
+            // I.只繼承一個類別
+            // II.可包含有邏輯的方法以及有資料的屬性
+            // III.可以定義不同權限
+                // 例如：Product.php，Model就是Abstract，建構方式跟class一樣會有很多方法，但是class可以被new，Abstract不能被new
+                class Product extends Model{}
+        // 2.Interface 介面：
+            // I.繼承多個類別
+            // II.只能定義函式和屬性名稱
+            // III.只能定義public
+                // 例如：OrderExport.php中的WithHeadings，按Ctrl+左鍵點擊會到WithHeadings.php之中，就可以看到是用interface來定義的
+                //      意思是指，引入WithHeadings的class底下必須有個method叫做headings
+                    namespace Maatwebsite\Excel\Concerns;
+                    interface WithHeadings
+                    {
+                        public function headings(): array;
+                    }
+
+    // C.關於物件三大特性的多型那件事
+        // 1.多載(Overloading)
+            // PHP Laravel 特色：針對未定義的屬性和方法，可以透過__set、__get等預設函式呼叫
+                // 例如：TryService中的以下，進入tinker，將$a = app()->make('TryService')，
+                //      新增public function __call($method, $args)前
+                //          $a->name，會跑出matt，若$a->name='cool';再次呼叫$a->name時，回傳cool
+                //          $a->matt，會跑出matt
+                //          $a->john，會跑出john，即使 $a->john=321 ，再次呼叫$a->john時，仍然回傳john
+                //          變成呼叫甚麼，就回復甚麼，比較不會出BUG，一種防呆機制
+                //      新增public function __call($method, $args)後
+                //          $a->cool()，會跑出"一般方法"、"cool"、"[]"、=>null
+                //          $a->cool(1,2,3)，會跑出"一般方法"、"cool"、"[1,2,3]"、=>null
+                //          一樣也是一種防呆機制
+                //      public function __call($method, $args) => public static function __call($method, $args)
+                //          這樣就可以直接執行靜態邏輯
+
+                    public $name = 'matt';
+                    public function __set($name, $value)
+                    {
+                        // $name呼叫的屬性名稱，$value所屬屬性所設定的值
+                        if(isset($this->$name)){
+                            // 如果$name是有這個屬性的話，就return $this->name = $value;
+                            return $this->name = $value;
+                        }else{
+                            return null;
+                        }
+                    }
+                    public function __get($name)
+                    {
+                        //若呼叫了不存在的參數，則回傳$name
+                        return $name;
+                    }
+                    public function __call($method, $args)
+                    {
+                        dump('一般方法');
+                        dump($method);
+                        dump($args);
+                    }
+        // 2.覆寫(Overriding)
+            // 指覆寫掉父類別中的函式，執行全新的行為
+                // 例如：Requests/APIRequest，從FormRequest繼承了failedValidation，然後在APIRequest中改寫繼承來的failedValidation
+                    class APIRequest extends FormRequest
+                    {
+                        protected function failedValidation(Validator $validator)
+                        // 覆蓋掉FormRequest中的函式，並使用Illuminate\Contracts\Validation\Validator;來幫助檢查
+                        {
+                            throw new HttpResponseException(response(['errors'=>$validator->errors(),400])); //回傳錯誤
+                        } 
+                    }
+                    
+    // D.Facade 與依賴注入
+        // 1.Facade(Facade正確唸法是"法薩的")
+            // 定義一個高級的Class，其他程式只能透過它來與該Class後方各項子功能Class操作溝通，可以降低外部與子系統之間的程式耦合度，並方便測試。
+            // 核心透過"__callStatic()"建構所有的組件，到web.php找到Route，使用Ctrl+左鍵點擊，就可以看到是怎麼建構的
+
+        // 2.依賴注入
+            // 將原來程式裡面要實例化使用的類別，改為由外部帶參數實例進來，來降低程式耦合性，開發上也能提升可用性
+                // 以di.php為例，模擬
+                    <?php
+
+                    class DataBase
+                    {
+                        protected $adapter; //專門儲存外部傳入的變數
+                        public function __construct(Adapter $adapter)
+                        {
+                            // $this->adapter = new MysqlAdapter; // 如果使用此會容易有要更動時，導致各種地方都要改
+                            $this->adapter = $adapter; // 因此改用此方式
+                        }
+                    }
+                    
+                    interface Adapter
+                    {
+                        // 從此定義每個函式都該長甚麼樣子，如此一來以下的MysqlAdapter就可以繼續擴充下去(新增PgsqlAdapter)
+                    }
+                    
+                    class MysqlAdapter implements Adapter
+                    {
+                    }
+                    class PgsqlAdapter implements Adapter
+                    {
+                    }
+                
+                // 實務設計
+                    // 1.以(Service/ShortUrlInterfaceService.php)設計一個Interface來設計某函式應有的樣子
+                        namespace App\Http\Services;
+                        
+                        interface ShortUrlInterfaceService
+                        {
+                            public function makeShortUrl($url);
+                        }
+                    // 2.TryService.php
+                        namespace App\Http\Services;
+
+                        use App\Http\Services\ShortUrlInterfaceService;
+
+                        class TryService
+                        {
+
+                            public $shortUrlService;
+                            public function __construct(ShortUrlInterfaceService $service)
+                            {
+                                $this->shortUrlService = $service;
+                            }}
+                    // 3.ShortUrlService.php
+                        class ShortUrlService implements ShortUrlInterfaceService
+                        {
+                            protected $client;
+                            public  $version = 2.5;
+                            public function __construct()
+                            {
+                                $this->client = new Client();
+                                dump($this->version);
+                            }}
+
+                    // 4.php artisan tinker
+                    // 5.$a = new TryService(new ShortUrlService())
+                    // 6.$a->shortUrlService->version
+
+
+// 16.測試程式
+    // A.PhpUnit - 單元測試框架工具(Laravel自己有了，需要要SQL)
+        // I.特性
+            // i.環境變數，自動定義為testing
+            // ii.Session 及 Cache 全部存入 array之中
+            // iii.使用 phpunit.xml 作為 config 用的參考檔案
+        // II.準備單元測試的環境
+            // i.到SQL，Server -> Data Export -> 選擇到Export to Self-Contained File，並將其的最後"Dump20230628"改成"test_schema.sql" 
+            // ii.勾選想要匯出的資料表(此處為laravel_demo)-> Dump Structure Only(不需要資料，只需要table) -> Start Export
+            // iii. Export完成後，對laravel_demo右鍵點選"Create Schema" -> Name改成laravel_demo_test，Character Set:utf8mb4，
+            // iv.Collection:utf8mb4_unicode_ci(選單如果擋住了ci的部分，就選擇unicode的第二個) -> Apply -> Apply -> Finish
+            // v.Server -> Data Import -> Import From Self-Contained File -> 點選"..."尋找到剛剛Export的test_schema.sql
+            // vi. Default Target Schema:laravel_demo_test -> Start Import -> 點選資料庫的重新整理 -> 點入資料庫laravel_demo_test，
+            // vii. 確認資料表都有被正確引入，內容僅標題而已 -> 接著到phpunit.xml，新增 <env name="DB_DATABASE" value="laravel_demo_test"/>，
+            // viii.(蘋果系列)終端輸入"phpunit"、(Windows系列，因Windows的指令沒被綁上)終端輸入"./vendor/bin/phpunit"
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+
+            
+
+
+
+
+       
+        
+            
+       
 
 
 

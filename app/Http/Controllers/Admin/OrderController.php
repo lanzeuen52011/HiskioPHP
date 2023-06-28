@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\OrderExport;
+use App\Exports\Sheets\OrderByShippedSheet;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Notifications\OrderDelivery;
+use Maatwebsite\Excel\Excel;
+use App\Exports\OrderMultipleExport;
 
 class OrderController extends Controller
 {
@@ -42,5 +46,16 @@ class OrderController extends Controller
             // 在(Model/User.php)有use Notifiable，所以可以直接指令進去就行，此檔案按下儲存後會自動新增 "use App\Notifications\OrderDelivery;"
             return response(['result'=>true]);
         }
+    }
+    public function export()
+    {
+        $excel = app()->make(Excel::class);
+        return $excel->download(new OrderExport, 'orders.xlsx');
+    }
+
+    public function exportByShipped()
+    {
+        $excel = app()->make(Excel::class);
+        return $excel->download(new OrderMultipleExport, 'orders_by_shipped.xlsx');
     }
 }
