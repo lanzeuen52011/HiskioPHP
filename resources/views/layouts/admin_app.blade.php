@@ -12,10 +12,8 @@
     </head>
     <body>
         @include('layouts.admin_nav')
-        <!-- 引用resources/views/layouts/admin_nav.blade.php -->
         <div>
             @yield('content')
-            <!-- @yeald部分有點類似Vue的RouteView -->
         </div> 
     </body>
 </html>
