@@ -34,7 +34,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('orders');
+        // 因function up(){}是先建立資料表orders，因此此處要先刪除order_items
         Schema::dropIfExists('order_items');
+        Schema::dropIfExists('orders');
     }
 };

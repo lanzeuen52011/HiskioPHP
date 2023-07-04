@@ -26,6 +26,7 @@ class Handler extends ExceptionHandler
     public function register(): void // 紀錄發生錯誤訊息時，應當執行哪個函式，或者該顯示何種錯誤頁面
     {
         $this->reportable(function (Throwable $exception) {
+            dd($exception);
             //使用reportable函式，可使用各種report功能
             $user = auth()->user(); //取得目前執行到發生錯誤的user是誰(user_id)
             LogError::create([

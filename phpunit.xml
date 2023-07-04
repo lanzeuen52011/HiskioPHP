@@ -7,9 +7,11 @@
     <testsuites>
         <testsuite name="Unit">
             <directory suffix="Test.php">./tests/Unit</directory>
+            <!-- 這裡是會去找test/Unit底下有無Test.php結尾的檔案來測試 -->
         </testsuite>
         <testsuite name="Feature">
             <directory suffix="Test.php">./tests/Feature</directory>
+            <!-- 這裡是會去找test/Feature底下有無Test.php結尾的檔案來測試 -->
         </testsuite>
     </testsuites>
     <source>

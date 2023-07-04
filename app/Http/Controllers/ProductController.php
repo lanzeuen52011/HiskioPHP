@@ -8,9 +8,17 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Product;
 use Illuminate\Support\Facades\Redis;
 use App\Http\Services\ShortUrlService;
+use App\Http\Services\AuthService;
 
 class ProductController extends Controller
 {
+    public function __construct(ShortUrlService $shortUrlService, AuthService $authService)
+    {
+        $this->shortUrlService = $shortUrlService;
+        $this->authService = $authService;
+    }
+    public $shortUrlService;
+    public $authService;
     /**
      * Display a listing of the resource.
      */
@@ -112,9 +120,10 @@ class ProductController extends Controller
         }
     }
 
-    public function sharedUrl($id){
-        $service = new ShortUrlService();
-        $url = $service->makeShortUrl("http://localhost:8000/product/$id");
+    public function sharedUrl($id)
+    {   
+        $this->authService->fakeReturn(); // 執行"假設性函式"
+        $url = $this->shortUrlService->makeShortUrl("http://localhost:8000/product/$id");
         return response(['url'=>$url]);
     }
     /**
