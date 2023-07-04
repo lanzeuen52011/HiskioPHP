@@ -4165,6 +4165,35 @@
             // vi. Default Target Schema:laravel_demo_test -> Start Import -> 點選資料庫的重新整理 -> 點入資料庫laravel_demo_test，
             // vii. 確認資料表都有被正確引入，內容僅標題而已 -> 接著到phpunit.xml，新增 <env name="DB_DATABASE" value="laravel_demo_test"/>，
             // viii.(蘋果系列)終端輸入"phpunit"、(Windows系列，因Windows的指令沒被綁上)終端輸入"./vendor/bin/phpunit"
+
+// 17.Schedule
+    // A.製作自己的指令(command)
+        // 1.終端輸入"php artisan make:command ExportOrder"
+        // 2.到(app/Console/Commands/ExportOrder.php)
+            protected $signature = 'export:orders';
+            // 找出Model去執行命令
+
+        // 3.終端輸入"php artisan export:order"，只要輸入此指令就會執行(app/Console/Commands/ExportOrder.php)的handle
+        // 4.到(app/Console/Commands/ExportOrder.php)
+            use Maatwebsite\Excel\Facades\Excel;
+            public function handle()
+            {
+                $new = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
+                Excel::store(new OrderExport, 'excels/'.$new.'訂單清單.xlsx');
+            }
+        // 5.終端輸入"php artisan export:order"，這樣(storage/app/excels)底下，就會有.xlsx檔案
+
+    // B.設定自動化排程(Schedule)
+        // 6.到(app/Console/Kernel.php)
+            protected function schedule(Schedule $schedule): void
+            {
+                // $schedule->command('inspire')->hourly();
+                $schedule->command('export:orders')->everyMinute(); // 每分鐘執行(app/Console/Commands/ExportOrder.php)的程式
+            }
+        // 7.終端輸入"php artisan schedule:run"執行schedule指令
+        // 8.終端輸入"php artisan schedule:work"請worker依照schedule設定的時程，去執行指令
+    // 參考網站：https://laravel.com/docs/10.x/scheduling
+                            
                 
                 
                 
