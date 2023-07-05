@@ -4170,192 +4170,636 @@
             // 6. Default Target Schema:laravel_demo_test -> Start Import -> 點選資料庫的重新整理 -> 點入資料庫laravel_demo_test，
             // 7. 確認資料表都有被正確引入，內容僅標題而已 -> 接著到phpunit.xml，新增 <env name="DB_DATABASE" value="laravel_demo_test"/>，
             // 8.(蘋果系列)終端輸入"phpunit"、(Windows系列，因Windows的指令沒被綁上)終端輸入"./vendor/bin/phpunit" -> 如果有錯誤可能是view的註解需要刪除
-
+                
         // III.如何開始撰寫 - Controller 單元測試為例(CartController.php)產生CRUD的Create、Read
             // 1.到(tests/Featrue/Controller/CartItemControllerTest.php)，產生測試Create與Read函式(每個函式都要有測試程式assertOK或者assertStatus等)
-                namespace Tests\Feature;
+            namespace Tests\Feature;
 
-                use App\Models\Product;
-                use App\Models\User;
-                use Illuminate\Foundation\Testing\RefreshDatabase;
-                use Laravel\Passport\Passport;
-                use Tests\TestCase;
-                
-                class CartItemControllerTest extends TestCase
-                {
-                    use RefreshDatabase; // 使用此測試程式時，會協助把資料庫全部清空，因確保獨立性，意旨每次測試時，都不會被任何資料給左右
-                    
-                    private $fakeUser; // 因CartItem預設是已登入狀態才可使用，因此須建立此變數
-
-                    protected function setUp(): void // void的意思就是不回傳
-                    {
-                        // setUp就是跑測試時會預設執行的函式
-                        parent::setUp(); // 使程式執行該執行的程式，來自TestCase該執行的程式
-                        // 建立一個fakeuser的假帳號密碼
-                        $this->fakeUser = User::create(['name'=> 'john',
-                                                        'email'=>'john@gmail.com',
-                                                        'password'=>123456789,]);
-                        // 因為此專案是使用Passport來驗證，才引入Passport，如其他專案驗證套件非Passport，則需額外引入
-                        Passport::actingAs($this->fakeUser); // actingAs代表表現的像$this->fakeUser，到此就有辦法辨識你是$fakeuser了(登入的意思)
-                    }
-
-                    public function testStore(): void
-                    {
-                        $cart = $this->fakeUser->carts()->create();
-                        $product = Product::create(['title' => 'test Product',
-                                                    'content' => 'cool',
-                                                    'price' => 10,
-                                                    'quantity' => 10]);
-                        // A.預測'quantity' => 2的資料會回傳200，如果正確的話，就會是true(測試通過)
-                        $response = $this->call(
-                            'POST', // 使用POST方法
-                            'cart-items', // 打到這個網址
-                            ['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 2] // 要傳送的data
-                        );
-                        $response->assertOK(); // 執行是成功的就會回傳true，代表測試通過
-
-                        // B.預測'quantity' => 99999999的資料會回傳400，如果正確的話，就會是true(測試通過)
-                        $response = $this->call(
-                            'POST', // 使用POST方法
-                            'cart-items', // 打到這個網址
-                            ['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 99999999] // 要傳送的data
-                        );
-                        $response->assertStatus(400); // 預測回傳連線狀態400，預測正確則true(測試通過)
-                    }
-                }
-
-            // 2.(蘋果系列)終端輸入"phpunit"、(Windows系列，因Windows的指令沒被綁上)終端輸入"./vendor/bin/phpunit"，確認測試結果OK
-        // IV.如何完善 Controller 單元測試，產生CRUD的Update、Delete(Destroy)
-            // 3.到(tests/Featrue/Controller/CartItemControllerTest.php)，產生Update的函式
-                public function testUpdate()
-                {
-                    $cart = $this->fakeUser->carts()->create();
-                    $product = Product::create(['title' => 'test Product',
-                                                'content' => 'cool',
-                                                'price' => 10,
-                                                'quantity' => 10]);
-                    $cartItem = $cart->cartItems()->create(['product_id' => $product->id, 'quantity' => 10]);
-                    $response = $this->call(
-                        'PUT', // 使用PUT方法
-                        'cart-items/'.$cartItem->id, // 打到這個網址
-                        ['quantity' => 1] // 要傳送的data
-                    );
-                    $this->assertEquals('true',$response->getContent()); 
-                    // 期待$response->getContent()會是回傳true，因資料沒有故意打錯，且CartItemController.php會在update正確時回傳true
-                    
-                    // 確認資料是否有被正確執行
-                    $cartItem->refresh(); // 使CartItems資料更新，因沒此行的話，資料即使修改了，讀取到資料庫的資料，仍會是修改前的資料
-                    $this->assertEquals(1,$cartItem->quantity); // 確認此cartItem的數量是1
-                }
-            // 4.(蘋果系列)終端輸入"phpunit"、(Windows系列，因Windows的指令沒被綁上)終端輸入"./vendor/bin/phpunit"，確認測試結果OK
-            // 5.到(tests/Featrue/Controller/CartItemControllerTest.php)，產生Destroy的函式
-                public function testDestroy(){
-                    // 重複性假資料 --- 開頭
-                    $cart = $this->fakeUser->carts()->create();
-                    $product = Product::create(['title' => 'test Product',
-                                                'content' => 'cool',
-                                                'price' => 10,
-                                                'quantity' => 10]);
-                    $cartItem = $cart->cartItems()->create(['product_id' => $product->id, 'quantity' => 10]);
-                    // 重複性假資料 --- 結尾
-                    $response = $this->call(
-                        'DELETE', // 使用DELETE方法
-                        'cart-items/'.$cartItem->id, // 打到這個網址
-                        ['quantity' => 1] // 要傳送的data
-                    );
-                    $response->assertOK(); 
-                    
-                    //確認資料有無真的被砍掉了
-                    $cartItem = CartItem::find($cartItem->id); // 搜尋剛剛砍掉的CartItem資料
-                    $this->assertNull($cartItem); // $cartItem的值必須是Null
-                }
-        // V.使用factory，產生測試資料，就不需要那麼多行的"重複性假資料"程式碼
-            // 參考網站：
-            // Laravel官方文件：https://laravel.com/docs/10.x/database-testing
-            // Faker套件參考使用方式：https://github.com/fzaninotto/Faker
-
-            // 1.終端輸入"php artisan make:factory ProductFactory"，創造一個factory
-            // 2.到(database/factories/ProductFactory.php)
-                namespace Database\Factories;
-                use App\Models\Product;
-                use Illuminate\Database\Eloquent\Factories\Factory;
-                /**
-                 * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Product>
-                 */
-                class ProductFactory extends Factory
-                {
-                    protected $model = Product::class; // 連結的模組
-                    /**
-                     * Define the model's default state.
-                     *
-                     * @return array<string, mixed>
-                     */
-                    public function definition(): array
-                    {
-                        return [
-                            'id' => $this->faker->randomDigit, // 自動產生亂數
-                            'title' => '測試產品',
-                            'content' => $this->faker->word, // 自動產生文字(請參考Faker文件)
-                            'price' => $this->faker->numberBetween(100,1000), // 數字來自100~1000
-                            'quantity' => $this->faker->numberBetween(10,100), // 數字來自10~100
-                        ];
-                    }
-                }
-            // 3.到(test/CartItemControllerTest.php)將所有Product::create...改成Product::factory()->make();
-                $product = Product::factory()->make();
-            // 4.終端輸入"./vendor/bin/phpunit"，基本上會錯，所以到(app/Exceptions/Handler.php)，原程式碼別刪，新增TODO:就好
-            public function register(): void
+            use App\Models\Product;
+            use App\Models\User;
+            use Illuminate\Foundation\Testing\RefreshDatabase;
+            use Laravel\Passport\Passport;
+            use Tests\TestCase;
+            
+            class CartItemControllerTest extends TestCase
             {
-                $this->reportable(function (Throwable $exception) {
-                    dd($exception); // TODO:新增這個就好，原程式碼別刪
-                })}
-            // 5.終端輸入"./vendor/bin/phpunit，就可以找到問題出在哪了，
-                // 因CartItemControllerTest.php的testStore()的$product是使用make而非create，導致資料並未真實存入
-            // 6.到(test/Feature/Controller/CartItemControllerTest.php)的testStore()將$product改成以下
-                $product = Product::factory()->create();
-            // 7.終端輸入"php artisan make:factory CartFactory --model=Cart"
-            // 8.到(database/factories/CartFactory.php)
-                namespace Database\Factories;
-                use App\Models\Cart;
-                use App\Models\User;
-                use Illuminate\Database\Eloquent\Factories\Factory;
-                /**
-                 * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Cart>
-                 */
-                class CartFactory extends Factory
+                use RefreshDatabase; // 使用此測試程式時，會協助把資料庫全部清空，因確保獨立性，意旨每次測試時，都不會被任何資料給左右
+                
+                private $fakeUser; // 因CartItem預設是已登入狀態才可使用，因此須建立此變數
+
+                protected function setUp(): void // void的意思就是不回傳
                 {
-                    protected $model = Cart::class;
-                    /**
-                     * Define the model's default state.
-                     *
-                     * @return array<string, mixed>
-                     */
-                    public function definition(): array
-                    {
-                        $user = User::factory()->make();
-                        return [
-                            'id' => $this->faker->randomDigit,
-                            'user_id' => $user->id,
-                        ];
-                    }
+                    // setUp就是跑測試時會預設執行的函式
+                    parent::setUp(); // 使程式執行該執行的程式，來自TestCase該執行的程式
+                    // 建立一個fakeuser的假帳號密碼
+                    $this->fakeUser = User::create(['name'=> 'john',
+                                                    'email'=>'john@gmail.com',
+                                                    'password'=>123456789,]);
+                    // 因為此專案是使用Passport來驗證，才引入Passport，如其他專案驗證套件非Passport，則需額外引入
+                    Passport::actingAs($this->fakeUser); // actingAs代表表現的像$this->fakeUser，到此就有辦法辨識你是$fakeuser了(登入的意思)
                 }
 
-            // 9.BUG解決
-            // 原因：(CartFactory.php)的$user是用make的，只有暫存沒有寫入伺服器，所以會導致BUG
-                // 解決方法1.(test/Feature/Controller/CartItemControllerTest.php)將$cart改成以下，
-                    $cart = Cart::factory()->create([
-                        'user_id' => $this->fakeUser->id
+                public function testStore(): void
+                {
+                    $cart = $this->fakeUser->carts()->create();
+                    $product = Product::create(['title' => 'test Product',
+                                                'content' => 'cool',
+                                                'price' => 10,
+                                                'quantity' => 10]);
+                    // A.預測'quantity' => 2的資料會回傳200，如果正確的話，就會是true(測試通過)
+                    $response = $this->call(
+                        'POST', // 使用POST方法
+                        'cart-items', // 打到這個網址
+                        ['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 2] // 要傳送的data
+                    );
+                    $response->assertOK(); // 執行是成功的就會回傳true，代表測試通過
+
+                    // B.預測'quantity' => 99999999的資料會回傳400，如果正確的話，就會是true(測試通過)
+                    $response = $this->call(
+                        'POST', // 使用POST方法
+                        'cart-items', // 打到這個網址
+                        ['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 99999999] // 要傳送的data
+                    );
+                    $response->assertStatus(400); // 預測回傳連線狀態400，預測正確則true(測試通過)
+                }
+            }
+
+        // 2.(蘋果系列)終端輸入"phpunit"、(Windows系列，因Windows的指令沒被綁上)終端輸入"./vendor/bin/phpunit"，確認測試結果OK
+    // IV.如何完善 Controller 單元測試，產生CRUD的Update、Delete(Destroy)
+        // 3.到(tests/Featrue/Controller/CartItemControllerTest.php)，產生Update的函式
+            public function testUpdate()
+            {
+                $cart = $this->fakeUser->carts()->create();
+                $product = Product::create(['title' => 'test Product',
+                                            'content' => 'cool',
+                                            'price' => 10,
+                                            'quantity' => 10]);
+                $cartItem = $cart->cartItems()->create(['product_id' => $product->id, 'quantity' => 10]);
+                $response = $this->call(
+                    'PUT', // 使用PUT方法
+                    'cart-items/'.$cartItem->id, // 打到這個網址
+                    ['quantity' => 1] // 要傳送的data
+                );
+                $this->assertEquals('true',$response->getContent()); 
+                // 期待$response->getContent()會是回傳true，因資料沒有故意打錯，且CartItemController.php會在update正確時回傳true
+                
+                // 確認資料是否有被正確執行
+                $cartItem->refresh(); // 使CartItems資料更新，因沒此行的話，資料即使修改了，讀取到資料庫的資料，仍會是修改前的資料
+                $this->assertEquals(1,$cartItem->quantity); // 確認此cartItem的數量是1
+            }
+        // 4.(蘋果系列)終端輸入"phpunit"、(Windows系列，因Windows的指令沒被綁上)終端輸入"./vendor/bin/phpunit"，確認測試結果OK
+        // 5.到(tests/Featrue/Controller/CartItemControllerTest.php)，產生Destroy的函式
+            public function testDestroy(){
+                // 重複性假資料 --- 開頭
+                $cart = $this->fakeUser->carts()->create();
+                $product = Product::create(['title' => 'test Product',
+                                            'content' => 'cool',
+                                            'price' => 10,
+                                            'quantity' => 10]);
+                $cartItem = $cart->cartItems()->create(['product_id' => $product->id, 'quantity' => 10]);
+                // 重複性假資料 --- 結尾
+                $response = $this->call(
+                    'DELETE', // 使用DELETE方法
+                    'cart-items/'.$cartItem->id, // 打到這個網址
+                    ['quantity' => 1] // 要傳送的data
+                );
+                $response->assertOK(); 
+                
+                //確認資料有無真的被砍掉了
+                $cartItem = CartItem::find($cartItem->id); // 搜尋剛剛砍掉的CartItem資料
+                $this->assertNull($cartItem); // $cartItem的值必須是Null
+            }
+    // V.使用factory，產生測試資料，就不需要那麼多行的"重複性假資料"程式碼
+        // 參考網站：
+        // Laravel官方文件：https://laravel.com/docs/10.x/database-testing
+        // Faker套件參考使用方式：https://github.com/fzaninotto/Faker
+
+        // 1.終端輸入"php artisan make:factory ProductFactory"，創造一個factory
+        // 2.到(database/factories/ProductFactory.php)
+            namespace Database\Factories;
+            use App\Models\Product;
+            use Illuminate\Database\Eloquent\Factories\Factory;
+            /**
+             * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Product>
+             */
+            class ProductFactory extends Factory
+            {
+                protected $model = Product::class; // 連結的模組
+                /**
+                 * Define the model's default state.
+                 *
+                 * @return array<string, mixed>
+                 */
+                public function definition(): array
+                {
+                    return [
+                        'id' => $this->faker->randomDigit, // 自動產生亂數
+                        'title' => '測試產品',
+                        'content' => $this->faker->word, // 自動產生文字(請參考Faker文件)
+                        'price' => $this->faker->numberBetween(100,1000), // 數字來自100~1000
+                        'quantity' => $this->faker->numberBetween(10,100), // 數字來自10~100
+                    ];
+                }
+            }
+        // 3.到(test/CartItemControllerTest.php)將所有Product::create...改成Product::factory()->make();
+            $product = Product::factory()->make();
+        // 4.終端輸入"./vendor/bin/phpunit"，基本上會錯，所以到(app/Exceptions/Handler.php)，原程式碼別刪，新增TODO:就好
+        public function register(): void
+        {
+            $this->reportable(function (Throwable $exception) {
+                dd($exception); // TODO:新增這個就好，原程式碼別刪
+            })}
+        // 5.終端輸入"./vendor/bin/phpunit，就可以找到問題出在哪了，
+            // 因CartItemControllerTest.php的testStore()的$product是使用make而非create，導致資料並未真實存入
+        // 6.到(test/Feature/Controller/CartItemControllerTest.php)的testStore()將$product改成以下
+            $product = Product::factory()->create();
+        // 7.終端輸入"php artisan make:factory CartFactory --model=Cart"
+        // 8.到(database/factories/CartFactory.php)
+            namespace Database\Factories;
+            use App\Models\Cart;
+            use App\Models\User;
+            use Illuminate\Database\Eloquent\Factories\Factory;
+            /**
+             * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Cart>
+             */
+            class CartFactory extends Factory
+            {
+                protected $model = Cart::class;
+                /**
+                 * Define the model's default state.
+                 *
+                 * @return array<string, mixed>
+                 */
+                public function definition(): array
+                {
+                    $user = User::factory()->make();
+                    return [
+                        'id' => $this->faker->randomDigit,
+                        'user_id' => $user->id,
+                    ];
+                }
+            }
+
+        // 9.BUG解決
+        // 原因：(CartFactory.php)的$user是用make的，只有暫存沒有寫入伺服器，所以會導致BUG
+            // 解決方法1.(test/Feature/Controller/CartItemControllerTest.php)將$cart改成以下，
+                $cart = Cart::factory()->create([
+                    'user_id' => $this->fakeUser->id
+                ]);
+            // 解決方法2.(database/factories/CartFactory.php)
+                public function definition(): array
+                {
+                    return [
+                        'id' => $this->faker->randomDigit,
+                        'user_id' => User::factory(),
+                    ];
+                }
+                // (test/Feature/Controller/CartItemControllerTest.php)將$cart改成以下，
+                $cart = Cart::factory()->create();
+
+        // 10.終端輸入"./vendor/bin/phpunit"
+        // 11.終端輸入"php artisan make:factory CartItemFactory --model=CartItem"
+        // 12.到(database/factories/CartItemFactory.php)
+            namespace Database\Factories;
+
+            use App\Models\Product;
+            use App\Models\Cart;
+            use Illuminate\Database\Eloquent\Factories\Factory;
+
+            /**
+             * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\CartItem>
+             */
+            class CartItemFactory extends Factory
+            {
+                /**
+                 * Define the model's default state.
+                 *
+                 * @return array<string, mixed>
+                 */
+                public function definition(): array
+                {
+                    return [
+                        'cart_id' => Cart::factory(),
+                        'product_id' => Product::factory(),
+                        'quantity' => $this->faker->randomDigit
+                    ];
+                }
+            }
+        // 13.到(test/Feature/Controller/CartItemControllerTest.php)
+            // 刪除以下
+                $cart = Cart::factory()->create([
+                    'user_id' => $this->fakeUser->id
+                ]);
+                $product = Product::factory()->make();
+            // 刪除以上
+            // 新增以下
+                $cartItem = CartItem::factory()->create();
+        // 14.到(database/factories/ProductFactory.php)
+            public function less() // 建立一個less狀態的產品，會使數量剩1
+            {
+                return $this->state(function(array $attributes){
+                    return [
+                        'quantity' => 1
+                    ];
+                });
+            }
+        // 15.到(test/Feature/Controller/CartItemControllerTest.php)的testStore
+            // 測試less
+            $product = Product::factory()->less()->create(); // 使用less使量少
+            // A.預測'quantity' => 2的資料會回傳200，如果正確的話，就會是true(測試通過)
+            $response = $this->call(
+                'POST', // 使用POST方法
+                'cart-items', // 打到這個網址
+                ['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 10] // 要傳送的data
+            );
+            $this->assertEquals($product->title.'數量不足', $response->getContent());
+        // 16.終端輸入"./vendor/bin/phpunit"
+
+    //VI.測試程式進階概念解說 - 以 Service 測試為例 (使用Mark假設回傳值，並避免使用到有次數限制的服務)
+        // 17.到(tests/Feature/Controller/ProductControllerTest.php)
+            namespace Tests\Feature;
+            
+            use App\Http\Services\ShortUrlService;
+            use App\Models\Product;
+            use App\Models\User;
+            use App\Models\CartItem;
+            use App\Models\Cart;
+            use Illuminate\Foundation\Testing\RefreshDatabase;
+            use Laravel\Passport\Passport;
+            use Tests\TestCase;
+            
+            class ProductControllerTest extends TestCase
+            {
+                use RefreshDatabase; // 使用此測試程式時，會協助把資料庫全部清空，因確保獨立性，意旨每次測試時，都不會被任何資料給左右
+                
+                private $fakeUser; // 因CartItem預設是已登入狀態才可使用，因此須建立此變數
+            
+                protected function setUp(): void // void的意思就是不回傳
+                {
+                    parent::setUp();
+            
+                }
+            
+                public function testSharedUrl() // 測試ProductController.php 的 sharedUrl()
+                {
+                    $product = Product::factory()->create();
+                    $id = $product->id;
+                    // 開始使用mock
+                    $this->mock(ShortUrlService::class, function($mock)use($id){
+                    // mock ShortUrlService 這個class
+                        $mock->shouldReceive('makeShortUrl')
+                            ->with("http://localhost:8000/product/$id") // 裡面應該是這樣的一個網址
+                            ->andReturn('fakeUrl') // 回傳'fakeUrl'
+                            ;
+                    });
+            
+                    $response = $this->call(
+                        'GET',
+                        'product/'.$id.'/shared-url', // 組出web.php中的路由 /product/{id}/shared-url
+                    );
+                    $response->assertOk();
+                    $response = json_decode($response->getContent(), true); // 得到值為true
+                    // 因ProductController.php的shareUrl是回傳return response(['url'=>$url]);，是json格式
+                    $this->assertEquals($response['url'], 'fakeUrl'); // 確認打完API後回收到的是fakeUrl
+                }
+            }
+
+        // 18.到(ProductController.php)的sharedUrl將new ShortUrlService()，改成依賴注入
+            public function __construct(ShortUrlService $shortUrlService)
+            {
+                $this->shortUrlService = $shortUrlService;
+            }
+            public $shortUrlService;
+            public function sharedUrl($id){
+                $url = $this->shortUrlService->makeShortUrl("http://localhost:8000/product/$id");
+                return response(['url'=>$url]);
+            }
+        // 19.終端輸入"./vendor/bin/phpunit"
+    //VII.測試程式進階概念解說 - 以 Service 測試為例 (假設函式中還有函式)
+        // 20.到(Http/Services/AuthService.php)，建設一個"假設性函式"
+            <?php
+
+            namespace App\Http\Services;
+            
+            
+            class AuthService
+            {
+                public function fakeReturn()
+                {
+                    dump(123);
+                }
+            }
+        // 21.到(ProductController.php)
+            use App\Http\Services\AuthService;
+            public function __construct(ShortUrlService $shortUrlService, AuthService $authService)
+            {
+                $this->shortUrlService = $shortUrlService;
+                $this->authService = $authService;
+            }
+            public $shortUrlService;
+            public $authService;
+            public function sharedUrl($id)
+            {   
+                $this->authService->fakeReturn(); // 執行"假設性函式"
+                $url = $this->shortUrlService->makeShortUrl("http://localhost:8000/product/$id");
+                return response(['url'=>$url]);
+            }
+        // 22.到(tests/Feature/Controller/ProductControllerTest.php)的testSharedUrl中新增以下
+            $this->mock(AuthService::class, function($mock){
+                // mock ShortUrlService 這個class
+                    $mock->shouldReceive('fakeReturn');
+                });
+        // 23.終端輸入"./vendor/bin/phpunit"
+
+
+// B.整合測試
+    // I.特性
+        // 1.注重函式與函式的整合符合預期，而不是單點函式的通過(幾個function串在一起，也可以通過)
+        // 2.可能跨足「介面(15-B-2.)」，從介面上元素是否存在，並確認點擊後的行為開始(確認點擊後彈出視窗等，是否正常執行)
+        // 3.Laravel 具備支援介面整合測試的內部套件(Laravel Dusk)
+            // Selenium-介面測試模型框架：可使用在Java、Python，會自動開啟瀏覽器使用headless風格(無標頭)，
+            //                          瀏覽器不會被看到，但會在背景執行
+    // *.使用時機：有修改、新增、更新、刪除等等都可以使用，這樣子可以將每次測試的邏輯都留著，
+    //            等到有任何改動時，可以確保任何動作都不會出現BUG
+    // II.整合測試概念建構與打底
+        // Laravel Dusk官方文件參考網站：https://laravel.com/docs/10.x/dusk
+        // 1.處理流程：進入"Laravel Dusk官方文件參考網站" -> 終端輸入"composer require --dev laravel/dusk" ->
+        //            終端輸入"php artisan dusk:install" -> 將(.env)內容，複製到新增的(.env.dusk.local)，
+        //            若沒(.env.dusk.local)，則會直接使用(.env) -> 將(.env.dusk.local)中的DB_DATABASE=laravel_dusk，
+        //            改成DB_DATABASE=laravel_dusk -> 將(.env.dusk.local)的APP_URL改成http://localhost:8000 ->
+        //            到SQL新增資料表laravel_dusk(切記絕對不可以在DB_DATABASE輸入主要資料的位置，20230629手癢把它改成laravel_demo
+        //            結果laravel_demo的資料全無了) ->
+        //            另外打開的終端輸入"php artisan serve" -> 此終端輸入"php artisan dusk"
+        //            (如若有問題，到(tests/Browser/ExmpleTest.php)將->assertSee('Laravel');改成->assertUrlIs("首頁網址");)即可
+
+        // 2.到(database/seeders/ProductSeeder.php)，將id改成1跟2
+            public function run(): void
+            {
+                Product::upsert([
+                    ['id'=>1,'title'=>'固定資料','content'=> '固定內容','price'=> rand(0,300),'quantity'=>20],
+                    ['id'=>2,'title'=>'固定資料','content'=> '固定內容','price'=> rand(0,300),'quantity'=>20],
+            ],['id'],['price','quantity']); 
+            }
+
+        // 3.到(resources/views/web/contact_us.blade.php)，新增name=""
+            @extends('layouts.app')
+
+            @section('content')
+            <h3>聯絡我們</h3>
+            <form class="w-50" action="">
+                <div class="form-group">
+                    <label for="exampleInputPassword1">請問你是：</label>
+                    <input name="name" type="text" class="form-control" id="exampleInputPassword1">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPassword1">請問你的消費時間：</label>
+                    <input name="date" type="date" class="form-control" id="exampleInputPassword1">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPassword1">你消費的商品種類：</label>
+                    <select name="product" class="form-control"  id="">
+                        <option value="物品">物品</option>
+                        <option value="食物">食物</option>
+                    </select>
+                    <br>
+                </div>
+                <button class="btn btn-success">送出</button>
+            </form>
+            @endsection
+        // 4.到(tests/Browser/ExmpleTest.php)
+            namespace Tests\Browser;
+            
+            use Illuminate\Foundation\Testing\DatabaseMigrations;
+            use Laravel\Dusk\Browser;
+            use Tests\DuskTestCase;
+            use Illuminate\Support\Facades\Artisan;
+            use App\Models\User;
+            use Facebook\WebDriver\Chrome\ChromeOptions;
+            use Facebook\WebDriver\Remote\DesiredCapabilities;
+            use Facebook\WebDriver\Remote\RemoteWebDriver;
+            
+            class ExampleTest extends DuskTestCase
+            {
+                use DatabaseMigrations; // 拿Schema跑Migration，讓Schema Rollback
+                protected function setup():void
+                {
+                    parent::setUp(); // 使用TestCase的setUp
+                    User::factory()->create([ // 因網站的通知是針對user去通知的，因此先建立user
+                        'email' => 'john@gmail.com',
                     ]);
-                // 解決方法2.(database/factories/CartFactory.php)
-                    public function definition(): array
-                    {
-                        return [
-                            'id' => $this->faker->randomDigit,
-                            'user_id' => User::factory(),
-                        ];
-                    }
-                    // (test/Feature/Controller/CartItemControllerTest.php)將$cart改成以下，
-                    $cart = Cart::factory()->create();
+                    // Product::factory()->create(); // 這種方法也可以，要記得去Product設定HasFactory就好
+                    // 但此處範例不使用上方註解之方法，而使用以下
+                    Artisan::call('db:seed', ['--class' => 'ProductSeeder']); // 使用Artisan::call呼叫db:seed指令，並指定Class為ProductSeeder
+                }
+            
+                protected function driver(): RemoteWebDriver // 將headless拿掉
+                {
+                    $options = (new ChromeOptions)->addArguments([
+                        // '--disable-gpu'
+                        // '--headless'
+                    ]);
+                    return RemoteWebDriver::create(
+                    'http://localhost:9515',
+                        DesiredCapabilities::chrome()->setCapability(
+                            ChromeOptions::CAPABILITY, $options
+                        )
+                    );
+                }
+            
+                public function testBasicExample():void
+                {
+                    $this->browse(function (Browser $browser) {
+                        $browser->visit('/')
+                                ->with('.special-text',function($text){ 
+                                    // .special-text是指 index.blade.php有個class叫做special-text
+                                    // $text那一個物件文字
+                                    $text->assertSee('固定資料');
+                                });
+                        eval(\Psy\sh()); // 跑到此行時PHP程式會暫停，dd則是終止，兩者不同，此還能執行PHP指令，但不知為啥沒有成功暫停
+                    });
+                }
+            }
+
+        // 5.終端輸入"php artisan dusk"，會看到畫面是暫停的，且終端可以輸入指令，如：輸入"$a=3", 輸入"$a"則會返回值
+
+    // III.整合測試實戰案例
+        // 6.到(tests/Browser/ExmpleTest.php)
+            public function testBasicExample():void
+            {
+                $this->browse(function (Browser $browser) {
+                    $browser->visit('/')
+                            ->with('.special-text',function($text){ 
+                                // .special-text是指 index.blade.php有個class叫做special-text
+                                // $text那一個物件文字
+                                $text->assertSee('固定資料');
+                            });
+        
+                    $browser->click('.check_product') // 點擊index.blade.php有個class叫做check_product
+                            ->waitForDialog(5) // 5秒內網頁應該要有回應或者動作，如果沒有就報錯 
+                            ->assertDialogOpened('商品數量充足') // 檢查Dialog內的文字，應該等於'商品數量充足'
+                            ->acceptDialog() // 對跳出的視窗按下確定
+                            ;
+                });
+            }
+        // 7.終端輸入"php artisan dusk"
+        // 8.到(tests/Browser/ExmpleTest.php)
+            public function testFillForm()
+            {
+                $this->browse(function (Browser $browser) {
+                    $browser->visit('contact-us')
+                            ->value('[name="name"]', 'cool') // 把name="name"的值設定成'cool'，就是在name="name"的欄位輸入cool
+                            ->select('[name="product"]', '食物') // 把name="product"的值設定成'食物'，就是在name="product"的欄位選擇食物
+                            ->press('送出') // 點擊送出
+                            ->assertQueryStringHas('product','食物')
+                            ;
+                        eval(\Psy\sh());
+                });
+            }
+        // 9.終端輸入"php artisan dusk"
+// 17.Schedule
+// A.製作自己的指令(command)
+    // 1.終端輸入"php artisan make:command ExportOrder"
+    // 2.到(app/Console/Commands/ExportOrder.php)
+    protected $signature = 'export:orders';
+    // 找出Model並執行命令
+    // 在php artisan中的指令名稱，"php artisan ($signature)" => 正確的輸入方式會變成"php artisan export:orders"
+
+// 3.終端輸入"php artisan export:orders"，只要輸入此指令就會執行(app/Console/Commands/ExportOrder.php)的handle
+// 4.到(app/Console/Commands/ExportOrder.php)
+    use Maatwebsite\Excel\Facades\Excel;
+    use App\Exports\OrderExport;
+    public function handle()
+    {
+        $new = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
+        Excel::store(new OrderExport, 'excels/'.$new.'訂單清單.xlsx');
+    }
+// 5.終端輸入"php artisan export:orders"，這樣(storage/app/excels)底下，就會有.xlsx檔案
+
+// B.設定自動化排程(Schedule)
+// 6.到(app/Console/Kernel.php)
+    protected function schedule(Schedule $schedule): void
+    {
+        // $schedule->command('inspire')->hourly();
+        $schedule->command('export:orders')->everyMinute(); // 每分鐘執行(app/Console/Commands/ExportOrder.php)的程式
+    }
+// 7.終端輸入"php artisan schedule:run"執行schedule指令
+// 8.終端輸入"php artisan schedule:work"請worker依照schedule設定的時程，去執行指令
+// 參考網站：https://laravel.com/docs/10.x/scheduling
+
+            
+            
+        
+        
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+        
+
+
+
+
+   
+    
+        
+   
+
+
+
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+        
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+
+            
+        
+
+
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
 
             // 10.終端輸入"./vendor/bin/phpunit"
             // 11.終端輸入"php artisan make:factory CartItemFactory --model=CartItem"
