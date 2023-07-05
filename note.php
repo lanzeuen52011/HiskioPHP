@@ -1585,7 +1585,7 @@
         // XII.終端輸入"Cart::find(2)->cartItems"，打撈所有跟Cart_id=2有相關的cartItems，且全是Collection，因為使用的是hasMany
         // XII.終端輸入"Product::find(2)->productItems"，打撈所有跟Product_id=2有相關的ProductItems，且全是Collection，因為使用的是hasMany
         
-    // 10-7.Query Builder 優化為 ORM
+    // 10-7.Query Builder 優化為 ORM(物件關係對映Object Relational Mapping)
         // A.修改(CartItemController.php)store
             // I.到(CartItemController.php)改使用Model，修改store
                 use app\Models\Cart;
@@ -2262,7 +2262,7 @@
             // 2.到(OrderController.php)新增with語法，來減少前端下SQL的語法次數，在"Order::with"處
                     public function index(Request $request)
                     {  
-                        $orderCount = Order::whereHas('orderItems')->count(); // 執行SQL裡面的count函數，如果要sum就改成sum('欄位名稱')
+                        $orderCount = Order::whereHas('orderItems')->count(); // orderItems有東西的才當作有效訂單，才執行SQL裡面的count函數，如果要sum就改成sum('欄位名稱')
                         $dataPerpage = 2; // 設定成一頁兩筆資料
                         $orderPages = ceil($orderCount / $dataPerpage); 
                         // 會有幾頁的資料，會使用ceil函式(無條件進位)是因為假如最後一頁剩一筆資料或者沒填滿，還是必須顯示出來，會多一頁。
@@ -2377,7 +2377,7 @@
             // 3.終端輸入"Cart::first()->checkout()"，執行剛剛包裹的checkout函式，並製造訂單
             // 4.到(Model/Cart.php)，故意新增一個錯誤
                 use Exception;
-                throw new Exception('123123'); // 引發錯誤'123123'
+                throw new Exception('123123'); // 放到try中，故意引發錯誤'123123'
             // 5.終端輸入"Cart::first()->checkout()"，執行剛剛包裹的checkout函式，確認觸發錯誤
             // 6.到資料表orders找看看有沒有比剛剛還大的id
             // 7.將剛剛4.新增的錯誤刪掉後，使用3.的指令，並回到6.找看看有沒有新的訂單，如果有就完成了
@@ -4657,34 +4657,36 @@
             }
         // 9.終端輸入"php artisan dusk"
 // 17.Schedule
-// A.製作自己的指令(command)
-    // 1.終端輸入"php artisan make:command ExportOrder"
-    // 2.到(app/Console/Commands/ExportOrder.php)
-    protected $signature = 'export:orders';
-    // 找出Model並執行命令
-    // 在php artisan中的指令名稱，"php artisan ($signature)" => 正確的輸入方式會變成"php artisan export:orders"
+    // A.製作自己的指令(command)
+        // 1.終端輸入"php artisan make:command ExportOrder"
+        // 2.到(app/Console/Commands/ExportOrder.php)
+        protected $signature = 'export:orders';
+        // 找出Model並執行命令
+        // 在php artisan中的指令名稱，"php artisan ($signature)" => 正確的輸入方式會變成"php artisan export:orders"
 
-// 3.終端輸入"php artisan export:orders"，只要輸入此指令就會執行(app/Console/Commands/ExportOrder.php)的handle
-// 4.到(app/Console/Commands/ExportOrder.php)
-    use Maatwebsite\Excel\Facades\Excel;
-    use App\Exports\OrderExport;
-    public function handle()
-    {
-        $new = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
-        Excel::store(new OrderExport, 'excels/'.$new.'訂單清單.xlsx');
-    }
-// 5.終端輸入"php artisan export:orders"，這樣(storage/app/excels)底下，就會有.xlsx檔案
+    // 3.終端輸入"php artisan export:orders"，只要輸入此指令就會執行(app/Console/Commands/ExportOrder.php)的handle
+    // 4.到(app/Console/Commands/ExportOrder.php)
+        use Maatwebsite\Excel\Facades\Excel;
+        use App\Exports\OrderExport;
+        public function handle()
+        {
+            $new = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
+            Excel::store(new OrderExport, 'excels/'.$new.'訂單清單.xlsx');
+        }
+    // 5.終端輸入"php artisan export:orders"，這樣(storage/app/excels)底下，就會有.xlsx檔案
 
-// B.設定自動化排程(Schedule)
-// 6.到(app/Console/Kernel.php)
-    protected function schedule(Schedule $schedule): void
-    {
-        // $schedule->command('inspire')->hourly();
-        $schedule->command('export:orders')->everyMinute(); // 每分鐘執行(app/Console/Commands/ExportOrder.php)的程式
-    }
-// 7.終端輸入"php artisan schedule:run"執行schedule指令
-// 8.終端輸入"php artisan schedule:work"請worker依照schedule設定的時程，去執行指令
-// 參考網站：https://laravel.com/docs/10.x/scheduling
+    // B.設定自動化排程(Schedule)
+    // 6.到(app/Console/Kernel.php)
+        protected function schedule(Schedule $schedule): void
+        {
+            // $schedule->command('inspire')->hourly();
+            $schedule->command('export:orders')->everyMinute(); // 每分鐘執行(app/Console/Commands/ExportOrder.php)的程式
+        }
+    // 7.終端輸入"php artisan schedule:run"執行schedule指令
+    // 8.終端輸入"php artisan schedule:work"請worker依照schedule設定的時程，去執行指令
+    // 參考網站：https://laravel.com/docs/10.x/scheduling
+
+// 18.
 
             
             
@@ -5119,16 +5121,16 @@
         }
     // 5.終端輸入"php artisan export:orders"，這樣(storage/app/excels)底下，就會有.xlsx檔案
 
-// B.設定自動化排程(Schedule)
-    // 6.到(app/Console/Kernel.php)
-        protected function schedule(Schedule $schedule): void
-        {
-            // $schedule->command('inspire')->hourly();
-            $schedule->command('export:orders')->everyMinute(); // 每分鐘執行(app/Console/Commands/ExportOrder.php)的程式
-        }
-    // 7.終端輸入"php artisan schedule:run"執行schedule指令
-    // 8.終端輸入"php artisan schedule:work"請worker依照schedule設定的時程，去執行指令
-// 參考網站：https://laravel.com/docs/10.x/scheduling
+    // B.設定自動化排程(Schedule)
+        // 6.到(app/Console/Kernel.php)
+            protected function schedule(Schedule $schedule): void
+            {
+                // $schedule->command('inspire')->hourly();
+                $schedule->command('export:orders')->everyMinute(); // 每分鐘執行(app/Console/Commands/ExportOrder.php)的程式
+            }
+        // 7.終端輸入"php artisan schedule:run"執行schedule指令
+        // 8.終端輸入"php artisan schedule:work"請worker依照schedule設定的時程，去執行指令
+    // 參考網站：https://laravel.com/docs/10.x/scheduling
 
                 
                 
