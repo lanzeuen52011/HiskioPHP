@@ -5110,16 +5110,36 @@
         // 找出Model並執行命令
         // 在php artisan中的指令名稱，"php artisan ($signature)" => 正確的輸入方式會變成"php artisan export:orders"
 
-    // 3.終端輸入"php artisan export:orders"，只要輸入此指令就會執行(app/Console/Commands/ExportOrder.php)的handle
-    // 4.到(app/Console/Commands/ExportOrder.php)
-        use Maatwebsite\Excel\Facades\Excel;
-        use App\Exports\OrderExport;
-        public function handle()
-        {
-            $new = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
-            Excel::store(new OrderExport, 'excels/'.$new.'訂單清單.xlsx');
-        }
-    // 5.終端輸入"php artisan export:orders"，這樣(storage/app/excels)底下，就會有.xlsx檔案
+        // 3.終端輸入"php artisan export:orders"，只要輸入此指令就會執行(app/Console/Commands/ExportOrder.php)的handle
+        // 4.到(app/Console/Commands/ExportOrder.php)
+            use Maatwebsite\Excel\Facades\Excel;
+            use App\Exports\OrderExport;
+
+use function App\Exports\import;
+
+            // 蘋果電腦(可正常執行)
+                public function handle()
+                {
+                    $new = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
+                    Excel::store(new OrderExport, 'excels/'.$new.'訂單清單.xlsx');
+                }
+
+            // Windows(先測試上面的，如果還是沒有出現檔案，再用這邊的程式碼)
+                public function handle()
+                {
+                    $now = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
+                    // dd($now);
+                    $try = str_split($now);
+                    $collect = "";
+                    foreach($try as $item){
+                        if($item != ":"){
+                            $collect = $collect.$item;
+                        }
+                    }
+                    Excel::store(new OrderExport, "excels/{$collect}訂單清單.xlsx");
+                    return 0;
+                }
+        // 5.終端輸入"php artisan export:orders"，這樣(storage/app/excels)底下，就會有.xlsx檔案
 
     // B.設定自動化排程(Schedule)
         // 6.到(app/Console/Kernel.php)
@@ -5132,7 +5152,104 @@
         // 8.終端輸入"php artisan schedule:work"請worker依照schedule設定的時程，去執行指令
     // 參考網站：https://laravel.com/docs/10.x/scheduling
 
-                
+// 18.Crontab
+    // 透過電腦層級來自動排程的程式
+        // 1.Command + 空白鍵 ，輸入"terminal"
+        // 2.終端輸入"crontab -e"
+        // 3.打字要先按'i'
+        // 4.vscode的終端輸入"pwd"，找出此資料夾的路徑
+        // 5.vscode的終端輸入"which php"，找出使用php的路徑
+        // 6.外面的終端輸入"* * * * * cd {4.} && {5.} artisan schedule:run"，{4.}與{5.}為上面4.與5.的值
+        // 7.按下esc，外面的終端輸入":wq!"，會返回crontab installing啥的，代表成功
+    // 參考網站：
+        // 時間轉成程式碼：https://crontab.guru/
+
+// 19.Boostrap & font awesome
+    // 快速優化前端樣式
+    // Boostrap
+        // 1.複製Boostrap到(layouts/nav.blade.php)
+            <nav class="navbar navbar-expand-lg bg-body-tertiary">
+                <div class="container-fluid">
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/">商品列表</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact-us">聯絡我們</a>
+                    </li>
+                    </ul>
+                </div>
+                <div>
+                    <input type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#notifications" value="通知">
+                </div>
+                </div>
+            </nav>
+            @include('layouts.modal')
+        // 2.到(web/contact_us.blade.php)
+            @extends('layouts.app')
+
+            @section('content')
+            <h3>聯絡我們</h3>
+            <form class="w-50" action="">
+                <div class="form-group">
+                    <label for="exampleInputPassword1">請問你是：</label>
+                    <input name="name" type="text" class="form-control" id="exampleInputPassword1">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPassword1">請問你的消費時間：</label>
+                    <input name="date" type="date" class="form-control" id="exampleInputPassword1">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPassword1">你消費的商品種類：</label>
+                    <select name="product" class="form-control"  id="">
+                        <option value="物品">物品</option>
+                        <option value="食物">食物</option>
+                    </select>
+                    <br>
+                </div>
+                <button class="btn btn-success">送出</button>
+            </form>
+            @endsection
+
+        // 3.請隨意修改
+
+    // Font awesome 
+        // 提供大量icon做使用
+        // 參考網址：https://fontawesome.com/search
+        // 將取得的Kit貼到(layouts.app)的head中
+
+
+// 20.JQuery Datatable(正確來說此處是Laravel DataTables)
+    // 將資料呈現在前端的套件
+    // 注意！套件原本是屬於前端用的，因此需使用Laravel DataTables
+    // 網站：https://yajrabox.com/docs/laravel-datatables/10.0/quick-starter
+        // 1.終端輸入"COMPOSER_MEMORY_LIMIT=-1 composer require yajra/laravel-datatables"，或者"composer require yajra/laravel-datatables"
+        // 2.終端輸入"composer require laravel/ui --dev"
+        // 3.終端輸入"php artisan ui bootstrap"，resources底下會多出sass，裡面是必要套件與Bootstrap語法設定好
+        // 4.外面的終端輸入(MAC)"brew install yarn"、(Windows)"npm install yarn --g"，此處的參考網站：https://ithelp.ithome.com.tw/articles/10191745
+        // 5.終端輸入"yarn add datatables.net-bs4"
+        // 6.終端輸入"yarn add laravel-datatables-vite --save-dev"
+        // 7.到(resources/js/app.js)，啟用datatables的js程式
+            import './bootstrap';
+            import 'laravel-datatables-vite';
+        // 8.到(resources/sass/app.scss)
+            // Fonts
+            @import url('https://fonts.bunny.net/css?family=Nunito');
+            
+            // Variables
+            @import 'variables';
+            
+            // Bootstrap
+            @import 'bootstrap/scss/bootstrap';
+            
+            // DataTables
+            @import 'bootstrap-icons/font/bootstrap-icons.css';
+            @import "datatables.net-bs5/css/dataTables.bootstrap5.min.css";
+            @import "datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css";
+            @import 'datatables.net-select-bs5/css/select.bootstrap5.css';
+        // 9.終端輸入"yarn install"
+        // 10.終端輸入"yarn build"，確認js的套件們的版本相依性
                 
             
             

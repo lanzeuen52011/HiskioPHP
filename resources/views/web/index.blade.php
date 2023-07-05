@@ -1,7 +1,20 @@
 @extends('layouts.app') 
 @section('content')
-    <h2>商品列表</h2>
-    <table>
+    <style>
+        .special-text{
+            text-align: center;
+            background: yellowgreen;
+        }
+    </style>
+    <div class="row">
+        <div class="col-4">
+            <h2>商品列表</h2>
+        </div>
+        <div class="col-8">
+            <img src="https://cataas.com/cat/says/hello%20world!" alt="">
+        </div>
+    </div>
+    <table class="table">
         <thead>
             <tr>
                 <td>標題</td>
@@ -21,8 +34,8 @@
                 <td>{{$product->price}}</td>
                 <td>{{$product->quantity}}</td>
                 <td>
-                    <input class="check_product" type="button" value="確認商品數量" data-id="{{$product->id}}">
-                    <input class="check_shared_url" type="button" value="分享商品" data-id="{{$product->id}}">
+                    <input class="check_product btn btn-success" type="button" value="確認商品數量" data-id="{{$product->id}}">
+                    <input class="check_shared_url btn btn-warning" type="button" value="分享商品" data-id="{{$product->id}}">
                 </td>
             </tr>
             @endforeach

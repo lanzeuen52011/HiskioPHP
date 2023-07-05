@@ -28,7 +28,16 @@ class ExportOrder extends Command
      */
     public function handle()
     {
-        $new = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
-        Excel::store(new OrderExport, "excels/".$new.'訂單清單.xlsx');
+        $now = now()->toDateTimeString(); // 幫助把時間轉成字串，而且是時分秒
+        // dd($now);
+        $try = str_split($now);
+        $collect = "";
+        foreach($try as $item){
+            if($item != ":"){
+                $collect = $collect.$item;
+            }
+        }
+        Excel::store(new OrderExport, "excels/{$collect}訂單清單.xlsx");
+        return 0;
     }
 }
