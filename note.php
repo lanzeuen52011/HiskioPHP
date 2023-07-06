@@ -5224,6 +5224,7 @@ use function App\Exports\import;
     // 將資料呈現在前端的套件
     // 注意！套件原本是屬於前端用的，因此需使用Laravel DataTables
     // 網站：https://yajrabox.com/docs/laravel-datatables/10.0/quick-starter
+    // A.建立datatables環境
         // 1.終端輸入"COMPOSER_MEMORY_LIMIT=-1 composer require yajra/laravel-datatables"，或者"composer require yajra/laravel-datatables"
         // 2.終端輸入"composer require laravel/ui --dev"
         // 3.終端輸入"php artisan ui bootstrap"，resources底下會多出sass，裡面是必要套件與Bootstrap語法設定好
@@ -5249,7 +5250,10 @@ use function App\Exports\import;
             @import "datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css";
             @import 'datatables.net-select-bs5/css/select.bootstrap5.css';
         // 9.終端輸入"yarn install"
-        // 10.終端輸入"yarn build"，確認js的套件們的版本相依性
+        // 10.終端輸入"yarn dev"，確認js的套件們的版本相依性
+    // B.資料管理功能
+        // 11.終端輸入"php artisan datatables:make Orders"，建立(app/DataTables/OrdersDataTable.php)
+        // 12.
                 
             
             
