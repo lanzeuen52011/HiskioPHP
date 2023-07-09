@@ -5152,6 +5152,12 @@ use function App\Exports\import;
         // 8.終端輸入"php artisan schedule:work"請worker依照schedule設定的時程，去執行指令
     // 參考網站：https://laravel.com/docs/10.x/scheduling
 
+
+
+
+// 前端應用！！！！！！！！！！！！！！！！！！！！！！！！！
+
+
 // 18.Crontab
     // 透過電腦層級來自動排程的程式
         // 1.Command + 空白鍵 ，輸入"terminal"
@@ -5253,9 +5259,159 @@ use function App\Exports\import;
         // 10.終端輸入"yarn dev"，確認js的套件們的版本相依性
     // B.資料管理功能
         // 11.終端輸入"php artisan datatables:make Orders"，建立(app/DataTables/OrdersDataTable.php)
-        // 12.
-                
+        // 12.到(AppServiceProvider.php)
+            use Yajra\DataTables\Html\Builder;
+            public function boot(): void
+                {
+                    Builder::useVite();
+                }
+        // 13.到(views/layouts/admin_app.blade.php)
+            <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+            @stack('scripts')
+        // 14.到(views/admin/orders/datatable.blade.php)
+            @extends('layouts.admin_app')
+    
+            @section('content')
+                <div class="container">
+                    <div class="card">
+                        <div class="card-header">Manage Users</div>
+                        <div class="card-body">
+                            {{ $dataTable->table() }}
+                            // 資料顯示在這裡
+                        </div>
+                    </div>
+                </div>
+            @endsection
             
+            @push('scripts')
+                {{ $dataTable->scripts(attributes: ['type' => 'module']) }}
+            @endpush
+            // 撈出javascript的部分，且會與(views/layouts/admin_app.blade.php)的@stack('scripts')作連動
+        // 15.到(web.php)
+            Route::get('admin/orders/datatable','Admin\OrderController@datatable');
+            // 放在order上是因為，如果放在orders底下，會導致進入到admin/orders中才找後綴是datatable的，就不會進到admin/orders/datatable了
+        
+        // 16.到(Admin/OrderController.php)
+            use App\DataTables\OrdersDataTable;
+            public function datatable(OrdersDataTable $dataTable)
+            {
+                return $dataTable->render('admin.orders.datatable');
+            }
+        // 17.終端輸入"php artisan serve"，位置：http://127.0.0.1:8000/admin/orders/datatable
+        // *.如果遇到"Method App\Http\Controllers\Admin\OrderController::show does not exist"，終端輸入"php artisan optimize、composer dump-autoload"
+        // *.如果遇到"uncaught typeerror $(...).datatable is not a function laravel"
+            // 方法一、到Render出Datatable的那個blade.php中，新增以下程式碼(此處為(views/admin/orders/datatable.blade.php))
+                // defer原理，讓HTML下載並解析完成且Script下載完成後，才開始解析Script的意思，請參考"defer是如何運作的"
+
+                <script src = "http://cdn.datatables.net/1.10.18/js/jquery.dataTables.min.js" defer ></script>
+
+                // 參考網址：https://datatables.net/forums/discussion/50869/typeerror-datatable-is-not-a-function-datatable-laravel
+                // defer是如何運作的：https://www.growingwiththeweb.com/2014/02/async-vs-defer-attributes.html
+
+            // 方法二、將resources/js/bootstrap.js的最上面加上以下，再重新跑一次yarn dev就解決的
+
+                window.$ = window.jQuery = require( 'jquery' );
+
+                // 參考網址：https://stackoverflow.com/questions/46869159/datatable-is-not-a-function-when-using-laravel-mix
+    // C.製作假資料
+        // 18.終端輸入"php artisan make:factory OrderFactory --model=Order"
+        // 19.到(database/factories/OrderFactory.php)
+            use App\Models\Order;
+            use App\Models\User;
+            use App\Models\Cart;
+            public function definition(): array
+            {
+                return [
+                    'user_id' => User::first(),
+                    'cart_id' => Cart::first(),
+                ];
+            }
+        // 20.終端輸入"php artisan tinker"
+        // 21.終端輸入"Order::factory()->count(100)->create()"，意思是我要建立100次
+        // 22.按下Ctrl+C結束"php artisan tinker"，終端輸入"php artisan serve"，位置：http://127.0.0.1:8000/admin/orders/datatable
+    // D.DataTable的語言調整及欄位設定
+        // 參考網址：https://yajrabox.com/docs/laravel-datatables/10.0/installation
+        // 23.終端輸入"php artisan vendor:publish --tag=datatables"，將Vendor中的設定檔撈出來
+        // 24.到(config/datatables.php)在'json'後面新增以下，使得datatable是中文版的
+            ,
+            'i18n' => [
+                'tw' => [
+                    'processing'=> '處理中...',
+                    'loadingRecords'=> '載入中...',
+                    'lengthMenu'=> '顯示 _MENU_ 項結果',
+                    'zeroRecords'=> '沒有符合的結果',
+                    'info'=>'顯示第 _START_ 至 _END_ 項結果，共 _TOTAL_ 項',
+                    'infoEmpty'=> '顯示第 0 至 0 項結果，共 0 項',
+                    'infoFiltered'=>'(從 _MAX_ 項結果中過濾)',
+                    'infoPostFix'=> '',
+                    'search'=> '搜尋:',
+                    'paginate'=> [
+                        'first'=> '第一頁',
+                        'previous'=> '上一頁',
+                        'next'=> '下一頁',
+                        'last'=> '最後一頁'
+                    ],
+                    'aria'=> [
+                        'sortAscending'=>': 升冪排列',
+                        'sortDescending'=> ': 降冪排列'
+                    ]
+                ]
+            ],
+        // 25.到(app/DataTables/OrdersDataTable.php)
+            use Yajra\DataTables\DataTables;
+            // 新增查看按鈕
+            public function dataTable(QueryBuilder $query): EloquentDataTable
+            {
+                return (new EloquentDataTable($query))
+                    // ->addColumn('action', 'orders.action')
+                    ->editColumn('action', function($model){// 編輯欄位顯示的資料長甚麼樣子
+                        $html = '<a class="btn btn-success" href="'.$model->id.'">查看</a>';
+                        return $html;
+                    }) 
+                    ->setRowId('id');
+            }
+            // 每頁筆數、排序、語言設定
+            public function html(): HtmlBuilder
+            {
+                return $this->builder()
+                            ->setTableId('orders-table')
+                            ->columns($this->getColumns())
+                            ->orderBy(0, 'desc') // 由新排到舊
+                            ->parameters([
+                                'pageLength' => 30, // 每頁30筆資料
+                                'language' => config('datatables.i18n.tw'), // 繁中化，撈出(config/datatable.php)中的'i18n' => ['tw' =>[] ]
+                            ]); 
+            }
+            // 欄位名稱(標題)設定
+            public function getColumns(): array
+            {
+                return [
+                    Column::make('id'),
+                    new Column([ // 此處會將DataTable中的is_shipped欄位，改名成'是否運送'
+                        'title' => '是否運送',
+                        'data' => 'is_shipped', // 資料來源於is_shipped欄位
+                        'attributes' => [ // 滑鼠對瀏覽器中的欄位標題'是否運送'點擊右鍵 -> 選擇"檢查" 就可以靠到HTML中有 data-try = "test data"
+                            'data-try' => 'test data'
+                        ]
+                    ]),
+                    Column::make('is_shipped'),
+                    Column::make('created_at'),
+                    Column::make('updated_at'),
+                    Column::make('user_id'),
+                    new Column([ // 此處會將DataTable中的action欄位，改名成'功能'
+                        'title' => '功能',
+                        'data' => 'action', // 資料來源於action欄位
+                        'searchable' => false, // 此項目可否被搜尋(此處為不可被搜尋)
+                    ]),
+                ];
+            }
+        // 26.終端輸入"php artisan serve"，位置：http://127.0.0.1:8000/admin/orders/datatable
+            
+// 21.前端套版概念
+    // A.Bootstrap Template，較為主流且免費版型較多的
+        // 1.Google搜尋"Bootstrap Template"，此處範例為"https://startbootstrap.com/themes"的"https://startbootstrap.com/theme/sb-admin-2"
+        // 2.在"https://startbootstrap.com/theme/sb-admin-2"中點擊"Free Download"
+        // 3.將下載好的檔案解壓縮後，將對應資料夾的檔案放入Laravel專案的資料夾public中，如：css就放css
             
                 
                 

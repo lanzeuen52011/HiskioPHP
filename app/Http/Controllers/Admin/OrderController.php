@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\DataTables\OrdersDataTable;
 use App\Exports\OrderExport;
 use App\Exports\Sheets\OrderByShippedSheet;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ use App\Models\Order;
 use App\Notifications\OrderDelivery;
 use Maatwebsite\Excel\Excel;
 use App\Exports\OrderMultipleExport;
+
+use function Tests\Feature\datatable;
 
 class OrderController extends Controller
 {
@@ -57,5 +60,9 @@ class OrderController extends Controller
     {
         $excel = app()->make(Excel::class);
         return $excel->download(new OrderMultipleExport, 'orders_by_shipped.xlsx');
+    }
+    public function datatable(OrdersDataTable $dataTable)
+    {
+        return $dataTable->render('admin.orders.datatable');
     }
 }

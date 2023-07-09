@@ -25,7 +25,8 @@ Route::get('/product/{id}/shared-url','ProductController@sharedUrl');
 Route::resource('product','ProductController');
 // 此為針對product去產生各種網址，並且對應到ProductController。
 
-
+Route::get('admin/orders/datatable','Admin\OrderController@datatable');
+// 放在order上是因為，如果放在orders底下，會導致進入到admin/orders中才找後綴是datatable的，就不會進到admin/orders/datatable了
 Route::resource('admin/orders','Admin\OrderController');
 Route::resource('admin/products','Admin\ProductController');
 Route::post('admin/products/upload-image','Admin\ProductController@uploadImage');
