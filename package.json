@@ -10,6 +10,7 @@
         "axios": "^1.1.2",
         "bootstrap": "^5.2.3",
         "cross-env": "^7.0.3",
+        "laravel-datatables-vite": "^0.5.2",
         "laravel-mix": "^6.0.19",
         "laravel-vite-plugin": "^0.7.0",
         "sass": "^1.56.1",
@@ -17,7 +18,6 @@
     },
     "dependencies": {
         "datatables.net-bs4": "^1.13.5",
-        "laravel-datatables-vite": "^0.5.2",
         "yarn": "^1.22.19"
     }
 }
