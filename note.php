@@ -5513,6 +5513,20 @@ use function App\Exports\import;
 
     // B.Laravel中使用Vue
         // 1.終端輸入"php artisan ui vue"
+        // 2.終端輸入"npm install"
+        // 3.到(resources/js/app.js)，將以下註解打開，這樣只要有Vue檔案，都會被執行
+            Object.entries(import.meta.glob("./**/*.vue", { eager: true })).forEach(
+                ([path, definition]) => {
+                    app.component(
+                        path
+                            .split("/")
+                            .pop()
+                            .replace(/\.\w+$/, ""),
+                        definition.default
+                    );
+                }
+            );
+            // 打開此行
             
 
             
