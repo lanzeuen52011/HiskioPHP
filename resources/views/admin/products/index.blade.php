@@ -44,7 +44,7 @@
                 </td>
                 <td>
                     <!-- <input type="button" class="upload-image" data-id="{{$product->id}}" value="上傳圖片"  data-bs-toggle="modal" data-bs-target="#upload-image"> -->
-                    <input type="button" class="upload-image" data-id="{{$product->id}}" value="上傳圖片">
+                    <input type="button" class="upload-image btn-circle" data-id="{{$product->id}}" value="上傳圖片">
                 </td>
             </tr>
         @endforeach

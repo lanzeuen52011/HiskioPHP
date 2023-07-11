@@ -10,12 +10,27 @@
         </script>
         <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="{{ asset('/vendor/fontawesome-free/css/all.min.css') }}" type="text/css">
+        <!-- href最左邊加個"/"才會抓到東西 -->
+        <!-- <link rel="stylesheet" href="/resources/vendor/"> -->
+        <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
+
+        <!-- Custom styles for this template-->
+        <link href="{{ asset('css/sb-admin-2.min.css') }}" rel="stylesheet">
+
     </head>
-    <body>
-        @include('layouts.admin_nav')
-        <div>
-            @yield('content')
+    <body id="page-top">
+        <!-- Page Wrapper -->
+        <div id="wrapper">
+            @include('layouts.admin_nav')
+            <div id="content-wrapper" class="d-flex flex-column p-3 mt-3">
+                @yield('content')
+            </div> 
         </div> 
-        @stack('scripts')
     </body>
+    @stack('scripts')
+    <script src="{{ asset('/js/sb-admin-2.min.js') }}"></script>
+    <script src="{{ asset('/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 </html>

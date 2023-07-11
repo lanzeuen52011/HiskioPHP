@@ -5411,7 +5411,111 @@ use function App\Exports\import;
     // A.Bootstrap Template，較為主流且免費版型較多的
         // 1.Google搜尋"Bootstrap Template"，此處範例為"https://startbootstrap.com/themes"的"https://startbootstrap.com/theme/sb-admin-2"
         // 2.在"https://startbootstrap.com/theme/sb-admin-2"中點擊"Free Download"
-        // 3.將下載好的檔案解壓縮後，將對應資料夾的檔案放入Laravel專案的資料夾public中，如：css就放css
+        // 3.將下載好的檔案解壓縮後，將對應資料夾的檔案放入Laravel專案的資料夾resources中(css/js/vender)，如：css就放css
+        // 4.到(resources/views/layouts/admin_php.balde.php)，將Bootstrap Template下載下來的index其所引入的資源引入
+            <html>
+                <head>
+                    <title>電商管理平台</title>
+                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+                    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+                    <script
+                        src="https://code.jquery.com/jquery-3.7.0.min.js"
+                        integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="
+                        crossorigin="anonymous">
+                    </script>
+                    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
+                    <link rel="stylesheet" href="{{ asset('/vendor/fontawesome-free/css/all.min.css') }}" type="text/css">
+                    <!-- href最左邊加個"/"才會抓到東西 -->
+                    <!-- <link rel="stylesheet" href="/resources/vendor/"> -->
+                    <link
+                    href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+                    rel="stylesheet">
+            
+                    <!-- Custom styles for this template-->
+                    <link href="{{ asset('css/sb-admin-2.min.css') }}" rel="stylesheet">
+            
+                </head>
+                <body id="page-top">
+                    <!-- Page Wrapper -->
+                    <div id="wrapper">
+                        @include('layouts.admin_nav')
+                        <div id="content-wrapper" class="d-flex flex-column p-3 mt-3">
+                            @yield('content')
+                        </div> 
+                    </div> 
+                </body>
+                @stack('scripts')
+                <script src="{{ asset('/js/sb-admin-2.min.js') }}"></script>
+                <script src="{{ asset('/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+            </html>
+        // 5.到(layouts/admin_nav.blade.php)
+            <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+                <!-- Sidebar - Brand -->
+                <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
+                    <div class="sidebar-brand-icon rotate-n-15">
+                        <i class="fas fa-laugh-wink"></i>
+                    </div>
+                    <div class="sidebar-brand-text mx-3">Laravel 購物後台<sup>2</sup></div>
+                </a>
+            
+                <!-- Divider -->
+                <hr class="sidebar-divider my-0">
+            
+                <!-- Nav Item - Dashboard -->
+                <li class="nav-item active">
+                    <a class="nav-link" href="/admin/orders">
+                        <i class="fas fa-fw fa-tachometer-alt"></i>
+                        <span>首頁</span>
+                    </a>
+                </li>
+            
+                <!-- Divider -->
+                <hr class="sidebar-divider">
+            
+                <!-- Heading -->
+                <div class="sidebar-heading">
+                    管理文字
+                </div>
+            
+                <!-- Nav Item - Pages Collapse Menu -->
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                        <i class="fas fa-fw fa-cog"></i>
+                        <span>訂單管理</span>
+                    </a>
+                    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            <h6 class="collapse-header">清單</h6>
+                            <a class="collapse-item" href="/admin/orders">訂單管理</a>
+                            <a class="collapse-item" href="/admin/orders/datatable">訂單管理 DataTable</a>
+                        </div>
+                    </div>
+                </li>
+                <!-- Nav Item - Pages Collapse Menu -->
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
+                        <i class="fas fa-fw fa-cog"></i>
+                        <span>產品管理</span>
+                    </a>
+                    <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionSidebar">
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            <h6 class="collapse-header">清單</h6>
+                            <a class="collapse-item" href="/admin/products">產品管理</a>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+            @include('layouts.admin_modal')
+        // 6.到(admin/products/index.blade.php)，此處作者有自己刻一個css版型也可以拿出來用，去下載下來的index中點選"Utilities"頁面就會有看到作者刻的css
+            <input type="button" class="upload-image btn-circle" data-id="{{$product->id}}" value="上傳圖片">
+
+    // B.Laravel中使用Vue
+        // 1.終端輸入"php artisan ui vue"
+            
+
+            
             
                 
                 
