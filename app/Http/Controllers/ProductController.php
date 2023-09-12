@@ -12,13 +12,14 @@ use App\Http\Services\AuthService;
 
 class ProductController extends Controller
 {
+    public $shortUrlService;
+    public $authService;
     public function __construct(ShortUrlService $shortUrlService, AuthService $authService)
     {
         $this->shortUrlService = $shortUrlService;
         $this->authService = $authService;
     }
-    public $shortUrlService;
-    public $authService;
+
     /**
      * Display a listing of the resource.
      */

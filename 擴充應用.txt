@@ -3,3 +3,11 @@ PHP Intelephense
 
 Chorme擴充應用 - JSON Viewer
     https://chrome.google.com/webstore/detail/json-viewer/gbmdgpbipfallnflgajpaliibnhdgobh?hl=zh-TW
+
+
+AI工具for SQL
+    1.text2sql
+    2.Ai2sql
+    3.Sqlgpt
+    4.Sqlgenius
+

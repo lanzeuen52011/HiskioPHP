@@ -4115,7 +4115,7 @@
                     }
                 
                 // 實務設計
-                    // 1.以(Service/ShortUrlInterfaceService.php)設計一個Interface來設計某函式應有的樣子
+                    // 1.以(Service/ShortUrlInterfaceService.php)設計一個Interface來設計某函式應有的樣子，底下一定會有個長這樣的函式"makeShortUrl($url)"
                         namespace App\Http\Services;
                         
                         interface ShortUrlInterfaceService
@@ -4144,11 +4144,54 @@
                             {
                                 $this->client = new Client();
                                 dump($this->version);
-                            }}
+                            }
+                            public function makeShortUrl($url)
+                            {   
+                                try{
+                                    // 皮克看見：https://user.picsee.io/developers/
+                                    $accesstoken = env('URL_ACCESS_TOKEN');
+                                    $data = [
+                                        'url'=>$url,
+                                    ];
+                                    Log::channel('url_shorten')->info('postData',['data'=>$data]); // 指定為info層級，前綴詞為postData
+                                    $response = $this->client->request(
+                                        'POST',
+                                        "https://api.pics.ee/v1/links/?access_token=$accesstoken",
+                                        [
+                                            'headers'=> ['Content-Type'=> 'application/json'],
+                                            'body'=>json_encode($data)
+                                        ]
+                                    );
+                                    $contents = $response->getBody()->getContents();
+                                    Log::channel('url_shorten')->info('responseData',['data'=>$contents]);
+                                    $contents = json_decode($contents);
+                                }catch(\Throwable $th){
+                                    report($th); // 發生錯誤時，會執行(app/Exceptions/Handler.php)裡面的$this->reportable
+                                    return $url; // 假設縮網址真的有問題給不出來，至少該給出網址本身
+                                }
+                                return $contents->data->picseeUrl;
+                            }
+                        }
 
                     // 4.php artisan tinker
                     // 5.$a = new TryService(new ShortUrlService())
                     // 6.$a->shortUrlService->version
+                    // 7.因此要new新物件時
+                        // 創建 TryService 的實例，同時傳遞要縮短的網址，要如以下一樣，簡單來說注入與非注入的差別在於有沒有在TryService.php裡面的程式碼
+                            // 非依賴注入
+                                $this->shortUrlService = new ShortUrlService();
+                            // 依賴注入
+                                $this->shortUrlService = $service;
+                                $tryService = new TryService(new ShortUrlService());
+
+                                // 要縮短的網址
+                                $urlToShorten = "https://example.com";
+
+                                // 呼叫 makeShortUrl 函式並傳遞要縮短的網址
+                                $shortenedUrl = $tryService->makeShortUrl($urlToShorten);
+
+                                // 使用縮短後的網址進行後續操作
+                                echo "Shortened URL: " . $shortenedUrl;
 
 
 // 16.測試程式
@@ -5527,6 +5570,29 @@ use function App\Exports\import;
                 }
             );
             // 打開此行
+        // 4.到(resources/views/web/index.blade.php)，引入Vue範例，
+        //      其中"@vite('resources/js/app.js')"，是用vite直接引入(public/build/assets/app-xxxxx.js)，就可以使用Vue了
+        <div id="app">
+            <example-component></example-component>
+        </div> 
+        @vite('resources/js/app.js')
+        // 5.終端輸入"npm run build"
+        // 6.終端輸入"php artisan serve"
+
+// 22.伺服器架設
+    // A.雲端平台介紹與 GCP 基礎操作使用
+        // I.自架主機：彈性大、自主化高、費用高、需有人維護(清空一個能24hr不斷吹冷氣的機房，且還需要不斷電系統，且須請人維護網站與清潔)
+        // II.雲端主機：價格彈性、維護成本低、定期更新、受到共享限制、環境彈性低，而目前有三大家提供此服務
+            // Azure：提供Windows Server的雲端主機商。
+            // Google cloud：台灣有優點，音資料中心在彰化是有分布的，因為可使使用者直接從台灣連線，會快非常多
+            // AWS：目前市佔率最高
+
+        // III.架設雲端主機
+            // 1.Google搜尋"Google cloud platform"，選擇"台灣"，此處因沒付費所以我沒有去辦來用喔
+            // 2.到Google cloud platform中找到"Compute Engine" -> "VM執行個體" -> "啟用"，等大約五分鐘按F5 ->
+            //   VM執行個體的標題旁邊有個"+"，這是來開機器的 -> 名稱為VM名稱，區域選擇"asia-east(台灣)"，機器種類"e2-small(2個 vCPU，2B記憶體)"
+            //   -> 開機磁碟 -> 變更 -> 作業系統(Ubuntu)，版本(Ubuntu 20.04LTS) -> 防火牆 -> 允許HTTP流量 與 允許HTPPS流量 ，此處為允許連線的意思->
+            //   建立 -> 跑完即完成。
             
 
             
@@ -5534,9 +5600,13 @@ use function App\Exports\import;
                 
                 
                 
+// I.額外篇
+    // i.laravel-sitemap
+        // Github文件：https://github.com/spatie/laravel-sitemap
+        // 安裝流程： php.ini(extension=exif打開) -> 終端輸入"composer require spatie/laravel-sitemap" ->
+        //           終端輸入"php artisan vendor:publish --provider="Spatie\Sitemap\SitemapServiceProvider" --tag=sitemap-config"
                 
-                
-                
+        // 1.終端輸入"php artisan make:command SiteMap"
                 
                 
                 
