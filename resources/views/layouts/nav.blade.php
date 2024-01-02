@@ -8,6 +8,9 @@
         <li class="nav-item">
           <a class="nav-link" href="/contact-us">聯絡我們</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/convert-excel">Excel轉換</a>
+        </li>
       </ul>
     </div>
     <div>

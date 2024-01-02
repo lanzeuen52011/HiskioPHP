@@ -7,15 +7,7 @@
       </div>
       <div class="modal-body">
         <ul>
-            @foreach($notifications as $notification)
-                <li class="read_notification" data-id="{{ $notification->id }}">{{ $notification->data['msg'] }}
-                  <span class="read">
-                    @if($notification->read_at)
-                      (已讀)
-                    @endif
-                  </span>
-                </li>
-            @endforeach
+        
         </ul>
       </div>
     </div>

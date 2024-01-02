@@ -22,6 +22,9 @@ Route::get('/product/{id}/shared-url','ProductController@sharedUrl');
 // 以下方為例，設定當使用者要post'/'時，就進到名為'ProductController'的Controller，並使用create函數
 // Route::post('/','ProductController@create');
 
+Route::get('/convert-excel', 'ExcelController@index');
+Route::post('/convert-excel', 'ExcelController@convertExcel')->name('convertExcel');
+
 Route::resource('product','ProductController');
 // 此為針對product去產生各種網址，並且對應到ProductController。
 
@@ -132,10 +135,10 @@ Route::group(['middleware'=>'check.dirty'],function(){
 
 
 
-Auth::routes();
+// Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
-Auth::routes();
+// Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
